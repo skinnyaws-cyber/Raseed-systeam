@@ -1,0 +1,31 @@
+name: raseed_app
+description: "تطبيق رصيد لتحويل الرصيد في العراق - نظام مالي متكامل"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  google_fonts: ^6.1.0 # لدعم الخطوط العصرية
+  intl: ^0.18.1 # لدعم العملة واللغة العربية
+  http: ^1.1.0 # لربط التطبيق بالسيرفر
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  # هنا نقوم بتعريف الخط الذي اخترته "IBM Plex Sans Arabic"
+  fonts:
+    - family: IBMPlexSansArabic
+      fonts:
+        - asset: assets/fonts/IBMPlexSansArabic-SemiBold.ttf
+          weight: 600
