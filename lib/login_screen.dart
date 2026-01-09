@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dashboard_screen.dart'; // استيراد الرئيسية
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,8 +35,6 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 10),
             const Text('سجل دخولك لمتابعة عمليات تحويل الرصيد.'),
             const SizedBox(height: 50),
-
-            // حقل رقم الهاتف
             TextFormField(
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
@@ -46,8 +45,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // حقل كلمة المرور مع العين
             TextFormField(
               obscureText: !_isPasswordVisible,
               decoration: InputDecoration(
@@ -61,11 +58,14 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 40),
-
-            // زر الدخول
             ElevatedButton(
               onPressed: () {
-                // منطق تسجيل الدخول لاحقاً
+                // محاكاة دخول ناجح والتوجه للرئيسية
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                  (route) => false,
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF50C878),
