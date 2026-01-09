@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dashboard_screen.dart'; // استيراد الرئيسية
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -8,11 +9,8 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  // متغيرات للتحكم برؤية كلمة المرور
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
-
-  // معرف للتحقق من صحة البيانات في الحقول
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -41,12 +39,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
               const SizedBox(height: 10),
               const Text('ابدأ بتحويل رصيدك إلى كاش الآن بملء البيانات التالية:'),
               const SizedBox(height: 40),
-
-              // حقل الاسم
               _buildInputField(label: 'الاسم الكامل', icon: Icons.person_outline),
               const SizedBox(height: 20),
-
-              // حقل رقم الهاتف
               _buildInputField(
                 label: 'رقم الهاتف',
                 icon: Icons.phone_android_outlined,
@@ -54,29 +48,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 20),
-
-              // حقل كلمة المرور مع أيقونة العين
               _buildPasswordField(
                 label: 'كلمة المرور',
                 isVisible: _isPasswordVisible,
                 onToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
               ),
               const SizedBox(height: 20),
-
-              // حقل تأكيد كلمة المرور
               _buildPasswordField(
                 label: 'تأكيد كلمة المرور',
                 isVisible: _isConfirmPasswordVisible,
                 onToggle: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
               ),
               const SizedBox(height: 40),
-
-              // زر إنشاء الحساب
               ElevatedButton(
                 onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // هنا سنضع منطق إرسال البيانات للسيرفر لاحقاً
-                  }
+                  // محاكاة تسجيل ناجح والتوجه للرئيسية
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                    (route) => false,
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF50C878),
@@ -92,7 +83,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // دالة بناء حقول الإدخال العادية
   Widget _buildInputField({required String label, required IconData icon, String? prefixText, TextInputType? keyboardType}) {
     return TextFormField(
       keyboardType: keyboardType,
@@ -101,15 +91,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         prefixIcon: Icon(icon, color: const Color(0xFF50C878)),
         prefixText: prefixText,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: Color(0xFF50C878), width: 2),
-        ),
       ),
     );
   }
 
-  // دالة بناء حقول كلمة المرور
   Widget _buildPasswordField({required String label, required bool isVisible, required VoidCallback onToggle}) {
     return TextFormField(
       obscureText: !isVisible,
@@ -121,10 +106,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           onPressed: onToggle,
         ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: Color(0xFF50C878), width: 2),
-        ),
       ),
     );
   }
