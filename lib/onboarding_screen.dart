@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'signup_screen.dart'; // استيراد صفحة التسجيل
+import 'login_screen.dart';  // استيراد صفحة تسجيل الدخول
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -11,7 +13,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  // البيانات الخاصة بالواجهات
   final List<Map<String, dynamic>> _onboardingData = [
     {
       "title": "رصيدك.. صار كاش!",
@@ -36,7 +37,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // صفحات التمرير
           PageView.builder(
             controller: _pageController,
             onPageChanged: (index) => setState(() => _currentPage = index),
@@ -47,7 +47,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // تأثير المورفينج للأيقونة
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 500),
                       transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
@@ -65,7 +64,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B4332), // كحلي غامق مائل للخضرة
+                        color: Color(0xFF1B4332),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -79,15 +78,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               );
             },
           ),
-
-          // الجزء السفلي (النقاط والأزرار)
           Positioned(
             bottom: 50,
             left: 20,
             right: 20,
             child: Column(
               children: [
-                // نقاط التمرير
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
@@ -105,13 +101,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                
-                // ظهور الأزرار في الصفحة الأخيرة فقط
                 _currentPage == _onboardingData.length - 1
                     ? Column(
                         children: [
                           ElevatedButton(
-                            onPressed: () {}, // سنربطه بواجهة Sign Up لاحقاً
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                              );
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF50C878),
                               minimumSize: const Size(double.infinity, 55),
@@ -123,7 +122,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                           const SizedBox(height: 15),
                           TextButton(
-                            onPressed: () {}, // سنربطه بواجهة Login لاحقاً
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                              );
+                            },
                             child: const Text(
                               'هل لديك حساب مسبقاً؟ سجل دخول',
                               style: TextStyle(color: Color(0xFF1B4332), fontWeight: FontWeight.w600),
@@ -131,7 +135,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         ],
                       )
-                    : const SizedBox(height: 110), // مساحة فارغة للحفاظ على التوازن
+                    : const SizedBox(height: 110),
               ],
             ),
           ),
