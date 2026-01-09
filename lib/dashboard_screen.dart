@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'transfer_screen.dart';
-import 'activity_screen.dart'; // استدعاء واجهة النشاط
-import 'rewards_screen.dart';  // استدعاء واجهة المكافآت
+import 'activity_screen.dart';
+import 'rewards_screen.dart';
+import 'settings_screen.dart'; // استدعاء واجهة الإعدادات
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -13,11 +14,12 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
 
-  // القائمة التي تحتوي على الصفحات الثلاث
+  // القائمة المحدثة لتشمل الإعدادات
   final List<Widget> _pages = [
     const MainDashboardContent(),
     const ActivityScreen(),
     const RewardsScreen(),
+    const SettingsScreen(), // الصفحة الرابعة
   ];
 
   @override
@@ -26,6 +28,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
+        type: BottomNavigationBarType.fixed, // لضمان ظهور 4 أيقونات بشكل متوازن
         selectedItemColor: const Color(0xFF50C878),
         unselectedItemColor: Colors.grey,
         onTap: (index) => setState(() => _currentIndex = index),
@@ -33,13 +36,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'الرئيسية'),
           BottomNavigationBarItem(icon: Icon(Icons.history), label: 'النشاط'),
           BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: 'المكافآت'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'الإعدادات'),
         ],
       ),
     );
   }
 }
 
-// محتوى الواجهة الرئيسية (فصلناه ليكون الكود مرتباً)
 class MainDashboardContent extends StatelessWidget {
   const MainDashboardContent({super.key});
 
