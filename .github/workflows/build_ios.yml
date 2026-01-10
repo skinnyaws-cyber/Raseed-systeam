@@ -1,13 +1,13 @@
 name: Build iOS IPA (TrollStore Ready)
 on:
-  workflow_dispatch: # يسمح لك بتشغيل البناء يدوياً بضغطة زر
+  workflow_dispatch: # يسمح لك بتشغيل البناء يدوياً
 
 jobs:
   build:
     runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # تم التحديث إلى v4
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
@@ -23,11 +23,12 @@ jobs:
       - name: Create IPA (Payload Folder)
         run: |
           mkdir Payload
-          mv build/ios/iphoneos/Runner.app Payload/
+          cp -r build/ios/iphoneos/Runner.app Payload/
           zip -r Raseed.ipa Payload
           
       - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # هذا هو الإصلاح المطلوب (v4)
         with:
           name: Raseed-App-IPA
           path: Raseed.ipa
+          compression-level: 0 # اختياري: لسرعة الرفع
