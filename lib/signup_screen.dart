@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dashboard_screen.dart'; // استيراد الرئيسية
-import 'dashboard_screen.dart';
+import 'dashboard_screen.dart'; // التأكد من الاستيراد
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -11,71 +10,78 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   bool _isPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
-  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1B4332)),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: const Color(0xFFF5F7FA),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 30),
-        child: Form(
-          key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 30),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'إنشاء حساب جديد',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF1B4332)),
-              ),
+              const SizedBox(height: 80),
+              // أيقونة ترحيبية أو شعار
+              Icon(Icons.person_add_outlined, size: 80, color: Colors.teal.shade700),
+              const SizedBox(height: 20),
+              Text('إنشاء حساب جديد', 
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal.shade900)),
               const SizedBox(height: 10),
-              const Text('ابدأ بتحويل رصيدك إلى كاش الآن بملء البيانات التالية:'),
+              const Text('انضم إلى نظام رصيد الزمردي وابدأ بإدارة أموالك', 
+                textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
               const SizedBox(height: 40),
-              _buildInputField(label: 'الاسم الكامل', icon: Icons.person_outline),
+
+              // حقل الاسم
+              _buildTextField(label: 'الاسم الكامل', icon: Icons.person_outline),
               const SizedBox(height: 20),
-              _buildInputField(
-                label: 'رقم الهاتف',
-                icon: Icons.phone_android_outlined,
-                prefixText: '+964 ',
-                keyboardType: TextInputType.phone,
-              ),
+
+              // حقل رقم الهاتف
+              _buildTextField(label: 'رقم الهاتف', icon: Icons.phone_android_outlined, keyboardType: TextInputType.phone),
               const SizedBox(height: 20),
-              _buildPasswordField(
+
+              // حقل كلمة المرور
+              _buildTextField(
                 label: 'كلمة المرور',
+                icon: Icons.lock_outline,
+                isPassword: true,
                 isVisible: _isPasswordVisible,
-                onToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
-              ),
-              const SizedBox(height: 20),
-              _buildPasswordField(
-                label: 'تأكيد كلمة المرور',
-                isVisible: _isConfirmPasswordVisible,
-                onToggle: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                onToggleVisibility: () {
+                  setState(() => _isPasswordVisible = !_isPasswordVisible);
+                },
               ),
               const SizedBox(height: 40),
-              ElevatedButton(
-                onPressed: () {
-                  // محاكاة تسجيل ناجح والتوجه للرئيسية
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => DashboardScreen()),
-                    (route) => false,
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF50C878),
-                  minimumSize: const Size(double.infinity, 55),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+
+              // زر إنشاء الحساب
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal.shade700,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    elevation: 2,
+                  ),
+                  child: const Text('إنشاء الحساب', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
-                child: const Text('Sign Up', style: TextStyle(fontSize: 18, color: Colors.white)),
+              ),
+              const SizedBox(height: 20),
+
+              // العودة لتسجيل الدخول
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('لديك حساب بالفعل؟'),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('تسجيل الدخول', style: TextStyle(color: Colors.teal.shade700, fontWeight: FontWeight.bold)),
+                  ),
+                ],
               ),
             ],
           ),
@@ -84,29 +90,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _buildInputField({required String label, required IconData icon, String? prefixText, TextInputType? keyboardType}) {
-    return TextFormField(
+  // ودجت بناء حقول الإدخال لتوفير تكرار الكود
+  Widget _buildTextField({
+    required String label,
+    required IconData icon,
+    bool isPassword = false,
+    bool isVisible = false,
+    VoidCallback? onToggleVisibility,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      obscureText: isPassword && !isVisible,
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFF50C878)),
-        prefixText: prefixText,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-      ),
-    );
-  }
-
-  Widget _buildPasswordField({required String label, required bool isVisible, required VoidCallback onToggle}) {
-    return TextFormField(
-      obscureText: !isVisible,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF50C878)),
-        suffixIcon: IconButton(
-          icon: Icon(isVisible ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
-          onPressed: onToggle,
-        ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+        prefixIcon: Icon(icon, color: Colors.teal.shade700),
+        suffixIcon: isPassword 
+            ? IconButton(icon: Icon(isVisible ? Icons.visibility : Icons.visibility_off), onPressed: onToggleVisibility)
+            : null,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.teal.shade700, width: 1)),
       ),
     );
   }
