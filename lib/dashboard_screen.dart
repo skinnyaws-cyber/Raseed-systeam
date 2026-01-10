@@ -6,10 +6,9 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F4), // خلفية هادئة جداً
+      backgroundColor: const Color(0xFFF0F4F4),
       body: CustomScrollView(
         slivers: [
-          // رأس الصفحة مع تأثير التمدد
           SliverAppBar(
             expandedHeight: 120.0,
             floating: false,
@@ -18,7 +17,7 @@ class DashboardScreen extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsetsDirectional.only(start: 20, bottom: 16),
               title: const Text('رصيد الزمردي', 
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
             ),
             actions: [
               IconButton(onPressed: () {}, icon: const Icon(Icons.qr_code_scanner, color: Colors.white)),
@@ -32,7 +31,7 @@ class DashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // بطاقة الرصيد الاحترافية
+                  // بطاقة الرصيد
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(25),
@@ -58,7 +57,7 @@ class DashboardScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text('رصيدك المتاح', style: TextStyle(color: Colors.white70, fontSize: 16)),
-                            Image.network('https://img.icons8.com/fluency/48/chip-card.png', width: 40), // أيقونة شريحة البطاقة
+                            const Icon(Icons.credit_card, color: Colors.white54, size: 30),
                           ],
                         ),
                         const SizedBox(height: 10),
@@ -69,7 +68,9 @@ class DashboardScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text('**** **** **** 4421', style: TextStyle(color: Colors.white54, fontSize: 14)),
-                            Text('عضو زمردي', style: TextStyle(color: Colors.emeraldAccent.shade100, fontWeight: FontWeight.bold)),
+                            // تم تصحيح اللون هنا من emeraldAccent إلى Color(0xFFA7FFE4)
+                            const Text('عضو زمردي', 
+                              style: TextStyle(color: Color(0xFFA7FFE4), fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ],
@@ -77,8 +78,6 @@ class DashboardScreen extends StatelessWidget {
                   ),
 
                   const SizedBox(height: 30),
-
-                  // قسم الخدمات السريعة (Icons Grid)
                   const Text('الخدمات الأساسية', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A))),
                   const SizedBox(height: 20),
                   Row(
@@ -92,8 +91,6 @@ class DashboardScreen extends StatelessWidget {
                   ),
 
                   const SizedBox(height: 35),
-
-                  // قسم العمليات الأخيرة بنمط نظيف
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
