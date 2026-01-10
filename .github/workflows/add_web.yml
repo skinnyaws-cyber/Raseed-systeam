@@ -1,0 +1,15 @@
+name: Add Web Folder
+on: workflow_dispatch
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+      - run: |
+          flutter create . --platforms web
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add web/
+          git commit -m "Added web folder"
+          git push
