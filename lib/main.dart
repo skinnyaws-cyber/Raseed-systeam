@@ -16,7 +16,7 @@ class RaseedApp extends StatelessWidget {
       theme: ThemeData(
         primaryColor: const Color(0xFF50C878),
         fontFamily: 'IBMPlexSansArabic',
-        useMaterial_design: true,
+        useMaterial3: true,
       ),
       home: const OnboardingScreen(), // فتح واجهة الترحيب
     );
