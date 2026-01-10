@@ -1,4 +1,4 @@
-name: Build iOS IPA (TrollStore Final Bypass)
+name: Build iOS IPA (TrollStore Final Attempt)
 on:
   workflow_dispatch:
 
@@ -17,36 +17,32 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Prepare Project for TrollStore
+      - name: Clean & Prepare
         run: |
-          # 1. تعيين الـ Bundle ID
+          flutter clean
+          # تعيين الهوية وتعطيل التوقيع بقوة
           sed -i '' 's/com.example.[a-zA-Z0-9]*/com.raseed.app/g' ios/Runner.xcodeproj/project.pbxproj
-          
-          # 2. تعطيل التوقيع في ملفات الإعدادات
           echo "CODE_SIGNING_ALLOWED=NO" >> ios/Flutter/Generated.xcconfig
           echo "CODE_SIGNING_REQUIRED=NO" >> ios/Flutter/Generated.xcconfig
-          echo "CODE_SIGN_IDENTITY=" >> ios/Flutter/Generated.xcconfig
 
-      - name: Build with Direct Xcode Command
+      - name: Build iOS (Ignore Signing Error)
         run: |
-          # سنستخدم أمر xcodebuild مباشرة لتخطي قيود Flutter
-          set -o pipefail
-          xcodebuild -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -sdk iphoneos \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            clean build | xcpretty
+          # سنضيف "|| true" لنجبر السيرفر على إكمال المهمة حتى لو فشل التوقيع
+          flutter build ios --release --no-codesign || echo "Build stopped at signing stage, checking app bundle..."
 
-      - name: Create IPA for TrollStore
+      - name: Package for TrollStore
         run: |
+          # هنا السحر: سنبحث عن المجلد أينما كان ونضعه في Payload
           mkdir -p Payload
-          # البحث عن ملف الـ .app ووضعه في الـ Payload
-          cp -r build/ios/iphoneos/Runner.app Payload/ || cp -r ~/Library/Developer/Xcode/DerivedData/*/Build/Products/Release-iphoneos/Runner.app Payload/
-          zip -r Raseed.ipa Payload
+          APP_PATH=$(find build/ios/iphoneos -name "Runner.app" -type d | head -n 1)
+          if [ -d "$APP_PATH" ]; then
+            echo "Success: Found app bundle at $APP_PATH"
+            cp -r "$APP_PATH" Payload/
+            zip -r Raseed.ipa Payload
+          else
+            echo "Error: Runner.app not found. Build failed before packaging."
+            exit 1
+          fi
           
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
