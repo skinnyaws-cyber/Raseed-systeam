@@ -17,28 +17,36 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Set Custom Bundle ID & Disable Signing
+      - name: Force Disable Signing & Set Bundle ID
         run: |
-          # 1. تعيين Bundle ID احترافي "وهمي" ولكنه مقبول برمجياً
+          # 1. تعيين الـ Bundle ID الذي اقترحته
           sed -i '' 's/com.example.[a-zA-Z0-9]*/com.raseed.app/g' ios/Runner.xcodeproj/project.pbxproj
           
-          # 2. إزالة أي Team ID مبرمج
-          sed -i '' 's/DEVELOPMENT_TEAM = [^;]*;//g' ios/Runner.xcodeproj/project.pbxproj
+          # 2. حذف متطلبات التوقيع من ملف المشروع بعمق
+          sed -i '' '/CODE_SIGN_STYLE/d' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' '/DEVELOPMENT_TEAM/d' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' '/PROVISIONING_PROFILE/d' ios/Runner.xcodeproj/project.pbxproj
           
-          # 3. إجبار إعدادات Flutter على قبول عدم التوقيع
+          # 3. إجبار Xcode على وضع "التوقيع اليدوي" الفارغ
           echo "CODE_SIGNING_ALLOWED=NO" >> ios/Flutter/Generated.xcconfig
           echo "CODE_SIGNING_REQUIRED=NO" >> ios/Flutter/Generated.xcconfig
-          echo "PRODUCT_BUNDLE_IDENTIFIER=com.raseed.app" >> ios/Flutter/Generated.xcconfig
+          echo "CODE_SIGN_IDENTITY=" >> ios/Flutter/Generated.xcconfig
+          echo "EXPANDED_CODE_SIGN_IDENTITY=" >> ios/Flutter/Generated.xcconfig
 
-      - name: Build iOS (Force No-Codesign)
+      - name: Build iOS (No-Sign Bypass)
         run: |
-          flutter build ios --release --no-codesign --build-number=1 --build-name=1.0.0
+          # نستخدم أمر flutter build مع تمرير إعدادات إضافية لـ xcodebuild مباشرة
+          flutter build ios --release --no-codesign \
+            --extra-front-end-options="--no-implicit-dynamic-calls" \
+            --build-name=1.0.0 --build-number=1
 
-      - name: Create IPA (Payload Structure)
+      - name: Create IPA for TrollStore
         run: |
           mkdir -p Payload
+          # نسخ ملف التطبيق المجمع
           cp -r build/ios/iphoneos/Runner.app Payload/
-          zip -r Raseed.ipa Payload
+          # ضغطه كملف IPA
+          zip -vr Raseed.ipa Payload/
           
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
