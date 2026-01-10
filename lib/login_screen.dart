@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // محاكاة دخول ناجح والتوجه للرئيسية
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                  MaterialPageRoute(builder: (context) => DashboardScreen()),
                   (route) => false,
                 );
               },
