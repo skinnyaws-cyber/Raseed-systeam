@@ -1,4 +1,4 @@
-name: Build iOS IPA (TrollStore Force Success)
+name: Build iOS IPA (Fakesign & TrollStore)
 on:
   workflow_dispatch:
 
@@ -15,42 +15,37 @@ jobs:
           channel: 'stable'
 
       - name: Install Dependencies
-        run: |
-          flutter pub get
-          cd ios && pod install --repo-update && cd ..
+        run: flutter pub get
 
-      - name: Inject Dummy Team ID & Fix Signing
+      - name: Build iOS App (Unsigned)
         run: |
-          # 1. تعيين الـ Bundle ID والـ Team ID الوهمي لخداع Xcode
-          sed -i '' 's/com.example.[a-zA-Z0-9]*/com.raseed.app/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = [^;]*/DEVELOPMENT_TEAM = OPQ1234567/g' ios/Runner.xcodeproj/project.pbxproj
-          
-          # 2. إجبار النظام على استخدام التوقيع اليدوي (Manual) وتخطي الفحص
-          echo "CODE_SIGNING_ALLOWED=NO" >> ios/Flutter/Generated.xcconfig
-          echo "CODE_SIGNING_REQUIRED=NO" >> ios/Flutter/Generated.xcconfig
-          echo "CODE_SIGN_STYLE=Manual" >> ios/Flutter/Generated.xcconfig
-          echo "PROVISIONING_PROFILE_SPECIFIER=" >> ios/Flutter/Generated.xcconfig
+          # بناء النسخة بدون توقيع، وإضافة "|| true" لضمان استمرار السكربت حتى لو اعترض Xcode
+          flutter build ios --release --no-codesign || echo "Xcode complained about signing, but we will fix it manually."
 
-      - name: Build iOS App Bundle
+      - name: Apply Fakesign (ldid style)
         run: |
-          # سنبني نسخة Release مع تعطيل التوقيع تماماً
-          flutter build ios --release --no-codesign
-
-      - name: Create IPA for TrollStore
-        run: |
-          mkdir -p Payload
-          # البحث الديناميكي عن ملف الـ .app لضمان عدم حدوث خطأ في المسار
+          # البحث عن ملف الـ .app
           APP_PATH=$(find build/ios/iphoneos -name "Runner.app" -type d | head -n 1)
-          if [ -n "$APP_PATH" ]; then
+          
+          if [ -d "$APP_PATH" ]; then
+            echo "Found App at $APP_PATH. Starting Fakesign..."
+            
+            # القيام بعملية الـ fakesign يدوياً لكل الملفات داخل التطبيق
+            # علامة (-) تعني Ad-hoc signing وهو الـ fakesign الرسمي في macOS
+            codesign --force --deep --sign - "$APP_PATH"
+            
+            # إنشاء هيكل الـ IPA
+            mkdir -p Payload
             cp -r "$APP_PATH" Payload/
             zip -r Raseed.ipa Payload
+            echo "Fakesign complete and IPA created."
           else
-            echo "Error: Runner.app not found. Trying debug build logic..."
+            echo "Critical Error: Runner.app was not created. Check Flutter build logs."
             exit 1
           fi
           
-      - name: Upload IPA Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Raseed-App-IPA
+          name: Raseed-Fakesigned-IPA
           path: Raseed.ipa
