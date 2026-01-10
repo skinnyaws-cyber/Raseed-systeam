@@ -6,148 +6,162 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // خلفية رمادية فاتحة جداً
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.teal.shade700,
-        title: const Text('رصيد الزمردي', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none, color: Colors.white)),
-          const CircleAvatar(backgroundColor: Colors.white24, child: Icon(Icons.person, color: Colors.white)),
-          const SizedBox(width: 15),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // قسم الرصيد (البطاقة الرئيسية)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.teal.shade700,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
+      backgroundColor: const Color(0xFFF0F4F4), // خلفية هادئة جداً
+      body: CustomScrollView(
+        slivers: [
+          // رأس الصفحة مع تأثير التمدد
+          SliverAppBar(
+            expandedHeight: 120.0,
+            floating: false,
+            pinned: true,
+            backgroundColor: const Color(0xFF006D5B),
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsetsDirectional.only(start: 20, bottom: 16),
+              title: const Text('رصيد الزمردي', 
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ),
+            actions: [
+              IconButton(onPressed: () {}, icon: const Icon(Icons.qr_code_scanner, color: Colors.white)),
+              const SizedBox(width: 10),
+            ],
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('إجمالي الرصيد المتوفر', style: TextStyle(color: Colors.white70, fontSize: 16)),
-                  const SizedBox(height: 10),
-                  const Text('د.ع 1,250,000', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                  // بطاقة الرصيد الاحترافية
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(25),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF008080), Color(0xFF004D40)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.teal.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        )
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('رصيدك المتاح', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                            Image.network('https://img.icons8.com/fluency/48/chip-card.png', width: 40), // أيقونة شريحة البطاقة
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Text('1,250,500 د.ع', 
+                          style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                        const SizedBox(height: 25),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('**** **** **** 4421', style: TextStyle(color: Colors.white54, fontSize: 14)),
+                            Text('عضو زمردي', style: TextStyle(color: Colors.emeraldAccent.shade100, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // قسم الخدمات السريعة (Icons Grid)
+                  const Text('الخدمات الأساسية', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A))),
                   const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildQuickAction(Icons.add_circle_outline, 'شحن'),
-                      _buildQuickAction(Icons.send_rounded, 'تحويل'),
-                      _buildQuickAction(Icons.qr_code_scanner, 'دفع QR'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // قسم الخدمات
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('الخدمات السريعة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 4,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    children: [
-                      _buildServiceItem(Icons.phone_android, 'رصيد'),
-                      _buildServiceItem(Icons.language, 'إنترنت'),
-                      _buildServiceItem(Icons.electric_bolt, 'كهرباء'),
-                      _buildServiceItem(Icons.water_drop, 'ماء'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // قسم العمليات الأخيرة
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('آخر العمليات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      TextButton(onPressed: () {}, child: const Text('عرض الكل')),
+                      _buildMainAction(Icons.send_to_mobile_rounded, 'تحويل'),
+                      _buildMainAction(Icons.account_balance_wallet, 'شحن'),
+                      _buildMainAction(Icons.receipt_long, 'فواتير'),
+                      _buildMainAction(Icons.grid_view_rounded, 'المزيد'),
                     ],
                   ),
-                  _buildTransactionItem('شركة زين العراق', 'منذ ساعتين', '- 10,000 د.ع', Colors.red),
-                  _buildTransactionItem('تحويل من أحمد', 'أمس', '+ 50,000 د.ع', Colors.green),
-                  _buildTransactionItem('تسديد فاتورة ماء', '2 يناير', '- 15,000 د.ع', Colors.red),
+
+                  const SizedBox(height: 35),
+
+                  // قسم العمليات الأخيرة بنمط نظيف
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('آخر التحركات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      TextButton(onPressed: () {}, child: const Text('عرض السجل', style: TextStyle(color: Color(0xFF008080)))),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  _buildTransactionCard('أحمد محمد', 'منذ 5 دقائق', '+ 25,000', Colors.green),
+                  _buildTransactionCard('سوبر ماركت الهدى', 'اليوم، 12:30 م', '- 12,000', Colors.redAccent),
+                  _buildTransactionCard('تسديد فاتورة إنترنت', 'أمس', '- 40,000', Colors.redAccent),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // ودجت للأزرار السريعة فوق
-  Widget _buildQuickAction(IconData icon, String label) {
-    return Column(
-      children: [
-        CircleAvatar(backgroundColor: Colors.white.withOpacity(0.2), child: Icon(icon, color: Colors.white)),
-        const SizedBox(height: 5),
-        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
-      ],
-    );
-  }
-
-  // ودجت لأيقونات الخدمات
-  Widget _buildServiceItem(IconData icon, String label) {
+  Widget _buildMainAction(IconData icon, String label) {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
-          child: Icon(icon, color: Colors.teal.shade700),
+          width: 65,
+          height: 65,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, spreadRadius: 2)],
+          ),
+          child: Icon(icon, color: const Color(0xFF008080), size: 28),
         ),
-        const SizedBox(height: 5),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        const SizedBox(height: 10),
+        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
       ],
     );
   }
 
-  // ودجت لقائمة العمليات
-  Widget _buildTransactionItem(String title, String date, String amount, Color amountColor) {
+  Widget _buildTransactionCard(String title, String time, String amount, Color amountColor) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              CircleAvatar(backgroundColor: Colors.teal.withOpacity(0.1), child: Icon(Icons.receipt_long, color: Colors.teal.shade700)),
+              CircleAvatar(
+                backgroundColor: const Color(0xFFF0F7F7),
+                child: Icon(amount.contains('+') ? Icons.arrow_downward : Icons.arrow_upward, 
+                  color: amountColor, size: 18),
+              ),
               const SizedBox(width: 15),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Text(date, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text(time, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 ],
               ),
             ],
           ),
-          Text(amount, style: TextStyle(color: amountColor, fontWeight: FontWeight.bold)),
+          Text(amount, style: TextStyle(color: amountColor, fontWeight: FontWeight.bold, fontSize: 16)),
         ],
       ),
     );
