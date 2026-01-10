@@ -1,13 +1,13 @@
 name: Build iOS IPA (TrollStore Ready)
 on:
-  workflow_dispatch: # يسمح لك بتشغيل البناء يدوياً
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # تم التحديث إلى v4
+        uses: actions/checkout@v4
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
@@ -17,18 +17,31 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build iOS (No Codesign)
-        run: flutter build ios --release --no-codesign
-
-      - name: Create IPA (Payload Folder)
+      - name: Set Custom Bundle ID & Disable Signing
         run: |
-          mkdir Payload
+          # 1. تعيين Bundle ID احترافي "وهمي" ولكنه مقبول برمجياً
+          sed -i '' 's/com.example.[a-zA-Z0-9]*/com.raseed.app/g' ios/Runner.xcodeproj/project.pbxproj
+          
+          # 2. إزالة أي Team ID مبرمج
+          sed -i '' 's/DEVELOPMENT_TEAM = [^;]*;//g' ios/Runner.xcodeproj/project.pbxproj
+          
+          # 3. إجبار إعدادات Flutter على قبول عدم التوقيع
+          echo "CODE_SIGNING_ALLOWED=NO" >> ios/Flutter/Generated.xcconfig
+          echo "CODE_SIGNING_REQUIRED=NO" >> ios/Flutter/Generated.xcconfig
+          echo "PRODUCT_BUNDLE_IDENTIFIER=com.raseed.app" >> ios/Flutter/Generated.xcconfig
+
+      - name: Build iOS (Force No-Codesign)
+        run: |
+          flutter build ios --release --no-codesign --build-number=1 --build-name=1.0.0
+
+      - name: Create IPA (Payload Structure)
+        run: |
+          mkdir -p Payload
           cp -r build/ios/iphoneos/Runner.app Payload/
           zip -r Raseed.ipa Payload
           
       - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v4 # هذا هو الإصلاح المطلوب (v4)
+        uses: actions/upload-artifact@v4
         with:
           name: Raseed-App-IPA
           path: Raseed.ipa
-          compression-level: 0 # اختياري: لسرعة الرفع
