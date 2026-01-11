@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'discounts_screen.dart'; // الربط مع الملف الجديد
+import 'orders_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -34,7 +35,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // مصفوفة الصفحات التي يتم التنقل بينها
     final List<Widget> _pages = [
       _buildHomeContent(),     // الواجهة الرئيسية الحالية
-      const Center(child: Text('صفحة الطلبات قريباً')), 
+      const OrdersScreen(),
       const DiscountsScreen(),  // واجهة الخصومات من الملف الجديد
       const Center(child: Text('الملف الشخصي قريباً')),
     ];
