@@ -16,7 +16,7 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 30),
               _buildProfileHeader(),
               const SizedBox(height: 25),
-              _buildWalletCard(),
+              _buildTotalTransferredCard(), // البطاقة المحدثة
               const SizedBox(height: 25),
               _buildSettingsSection(context),
             ],
@@ -26,24 +26,14 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // رأس الصفحة (المعلومات الشخصية)
+  // رأس الصفحة
   Widget _buildProfileHeader() {
     return Column(
       children: [
-        Stack(
-          alignment: Alignment.bottomRight,
-          children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: emeraldColor.withOpacity(0.1),
-              child: Icon(Icons.person_rounded, size: 50, color: emeraldColor),
-            ),
-            Container(
-              padding: const EdgeInsets.all(5),
-              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-              child: Icon(Icons.stars_rounded, color: emeraldColor, size: 25),
-            ),
-          ],
+        CircleAvatar(
+          radius: 50,
+          backgroundColor: emeraldColor.withOpacity(0.1),
+          child: Icon(Icons.person_rounded, size: 50, color: emeraldColor),
         ),
         const SizedBox(height: 15),
         const Text('أحمد العراقي', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
@@ -58,11 +48,12 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // بطاقة المحفظة (الرصيد المتاح للسحب)
-  Widget _buildWalletCard() {
+  // بطاقة إجمالي الأموال المحولة (المعدلة حسب طلبك)
+  Widget _buildTotalTransferredCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25),
       padding: const EdgeInsets.all(25),
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
@@ -70,34 +61,22 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('الرصيد القابل للسحب', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                  SizedBox(height: 5),
-                  Text('75,250 د.ع', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: emeraldColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                ),
-                child: const Text('سحب', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
+          const Icon(Icons.account_balance_wallet_rounded, color: Colors.grey, size: 30),
+          const SizedBox(height: 10),
+          const Text('إجمالي الأموال المحولة لمحفظتك', 
+            style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 10),
+          Text('145,500 د.ع', // هذا المجموع يمثل (العمليات الناجحة - العمولة)
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: emeraldColor)),
+          const SizedBox(height: 5),
+          const Text('تم حسابها بناءً على 12 عملية ناجحة', 
+            style: TextStyle(color: Colors.grey, fontSize: 11)),
         ],
       ),
     );
   }
 
-  // قسم الإعدادات والخيارات
+  // قسم الإعدادات (المعدل)
   Widget _buildSettingsSection(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25),
@@ -105,12 +84,12 @@ class ProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
       child: Column(
         children: [
-          _buildSettingsTile(Icons.account_balance_wallet_outlined, 'معلومات المحفظة البنكية', 'إدارة ZainCash و AsiaHawala'),
-          _buildSettingsTile(Icons.history_rounded, 'سجل عمليات السحب', 'تتبع الأموال التي استلمتها'),
-          _buildSettingsTile(Icons.headset_mic_outlined, 'الدعم الفني والشكاوى', 'نحن هنا لمساعدتك 24/7'),
+          // تم تغيير الاسم هنا ليكون منطقياً (أرقام الاستلام)
+          _buildSettingsTile(Icons.phone_android_rounded, 'أرقام استلام المستحقات', 'إدارة أرقام ZainCash و AsiaHawala'),
+          _buildSettingsTile(Icons.assignment_turned_in_rounded, 'سجل العمليات الناجحة', 'عرض تفاصيل الأرباح السابقة'),
+          _buildSettingsTile(Icons.headset_mic_outlined, 'الدعم الفني', 'تواصل معنا في حال تأخر التحويل'),
           const Divider(indent: 20, endIndent: 20),
-          _buildSettingsTile(Icons.language_rounded, 'لغة التطبيق', 'العربية (العراق)'),
-          _buildSettingsTile(Icons.info_outline_rounded, 'عن تطبيق رصيد', 'الشروط والأحكام والسياسات'),
+          _buildSettingsTile(Icons.info_outline_rounded, 'عن تطبيق رصيد', 'شروط الاستخدام والعمولات'),
           _buildSettingsTile(Icons.logout_rounded, 'تسجيل الخروج', '', isLogout: true),
         ],
       ),
