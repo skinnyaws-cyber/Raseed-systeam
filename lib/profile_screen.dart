@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'manage_payments_screen.dart'; // استيراد واجهة أرقام الاستلام للربط
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -16,9 +17,9 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 30),
               _buildProfileHeader(),
               const SizedBox(height: 25),
-              _buildTotalTransferredCard(), // البطاقة المحدثة
+              _buildTotalTransferredCard(), // عرض إجمالي الأموال المحولة
               const SizedBox(height: 25),
-              _buildSettingsSection(context),
+              _buildSettingsSection(context), // تمرير الـ context هنا للربط
             ],
           ),
         ),
@@ -26,7 +27,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // رأس الصفحة
+  // رأس الصفحة (معلومات المستخدم)
   Widget _buildProfileHeader() {
     return Column(
       children: [
@@ -48,7 +49,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // بطاقة إجمالي الأموال المحولة (المعدلة حسب طلبك)
+  // بطاقة إجمالي الأموال (تم تحديثها بناءً على منطق مشروعك)
   Widget _buildTotalTransferredCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25),
@@ -66,17 +67,17 @@ class ProfileScreen extends StatelessWidget {
           const Text('إجمالي الأموال المحولة لمحفظتك', 
             style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 10),
-          Text('145,500 د.ع', // هذا المجموع يمثل (العمليات الناجحة - العمولة)
+          Text('145,500 د.ع', 
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: emeraldColor)),
           const SizedBox(height: 5),
-          const Text('تم حسابها بناءً على 12 عملية ناجحة', 
+          const Text('تم حسابها تلقائياً بعد خصم العمولة', 
             style: TextStyle(color: Colors.grey, fontSize: 11)),
         ],
       ),
     );
   }
 
-  // قسم الإعدادات (المعدل)
+  // قسم الإعدادات مع تفعيل الانتقال لواجهة أرقام الاستلام
   Widget _buildSettingsSection(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25),
@@ -84,8 +85,18 @@ class ProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
       child: Column(
         children: [
-          // تم تغيير الاسم هنا ليكون منطقياً (أرقام الاستلام)
-          _buildSettingsTile(Icons.phone_android_rounded, 'أرقام استلام المستحقات', 'إدارة أرقام ZainCash و AsiaHawala'),
+          // تم ربط هذا الزر بواجهة ManagePaymentsScreen
+          _buildSettingsTile(
+            Icons.phone_android_rounded, 
+            'أرقام استلام المستحقات', 
+            'إدارة أرقام ZainCash و Qi Card',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ManagePaymentsScreen()),
+              );
+            },
+          ),
           _buildSettingsTile(Icons.assignment_turned_in_rounded, 'سجل العمليات الناجحة', 'عرض تفاصيل الأرباح السابقة'),
           _buildSettingsTile(Icons.headset_mic_outlined, 'الدعم الفني', 'تواصل معنا في حال تأخر التحويل'),
           const Divider(indent: 20, endIndent: 20),
@@ -96,7 +107,8 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingsTile(IconData icon, String title, String subtitle, {bool isLogout = false}) {
+  // مكون الخيار الواحد في القائمة (Tile) مع تفعيل خاصية الضغط onTap
+  Widget _buildSettingsTile(IconData icon, String title, String subtitle, {bool isLogout = false, VoidCallback? onTap}) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -109,7 +121,7 @@ class ProfileScreen extends StatelessWidget {
       title: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isLogout ? Colors.red : Colors.black)),
       subtitle: subtitle.isNotEmpty ? Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)) : null,
       trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
-      onTap: () {},
+      onTap: onTap, // هنا يتم تفعيل وظيفة الضغط
     );
   }
 }
