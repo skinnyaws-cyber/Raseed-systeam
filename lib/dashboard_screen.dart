@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'discounts_screen.dart'; // الربط مع الملف الجديد
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -11,7 +12,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   final Color emeraldColor = const Color(0xFF50878C);
 
-  // حقول الحاسبة المدمجة
+  // حقول الحاسبة المدمجة (بقيت كما هي في كودك)
   final TextEditingController _amountController = TextEditingController();
   double _receiveAmount = 0.0;
   double _commission = 0.0;
@@ -30,56 +31,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // مصفوفة الصفحات التي يتم التنقل بينها
+    final List<Widget> _pages = [
+      _buildHomeContent(),     // الواجهة الرئيسية الحالية
+      const Center(child: Text('صفحة الطلبات قريباً')), 
+      const DiscountsScreen(),  // واجهة الخصومات من الملف الجديد
+      const Center(child: Text('الملف الشخصي قريباً')),
+    ];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F7),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                _buildHeader(),
-                const SizedBox(height: 30),
-                _buildMainCard(),
-                const SizedBox(height: 40),
-                const Text('حول رصيدك الآن', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildNetworkCard(
-                        'آسيا سيل', 
-                        'Asiacell', 
-                        'https://upload.wikimedia.org/wikipedia/ar/thumb/2/23/Asiacell_Logo.svg/1024px-Asiacell_Logo.svg.png',
-                        const Color(0xFFEE2737),
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: _buildNetworkCard(
-                        'زين العراق', 
-                        'Zain IQ', 
-                        'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Zain_Logo.svg/1200px-Zain_Logo.svg.png',
-                        const Color(0xFF00B2A9),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 40),
-                _buildRecentTransactionsHeader(),
-                _buildEmptyState(),
-              ],
-            ),
-          ),
-        ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
       ),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
 
-  // نافذة التحويل السفلية (تظهر عند الضغط على تحويل)
+  // الواجهة الرئيسية (نفس كودك الأصلي تماماً تم تجميعه هنا)
+  Widget _buildHomeContent() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              _buildHeader(),
+              const SizedBox(height: 30),
+              _buildMainCard(),
+              const SizedBox(height: 40),
+              const Text('حول رصيدك الآن', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildNetworkCard(
+                      'آسيا سيل', 
+                      'Asiacell', 
+                      'https://upload.wikimedia.org/wikipedia/ar/thumb/2/23/Asiacell_Logo.svg/1024px-Asiacell_Logo.svg.png',
+                      const Color(0xFFEE2737),
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: _buildNetworkCard(
+                      'زين العراق', 
+                      'Zain IQ', 
+                      'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Zain_Logo.svg/1200px-Zain_Logo.svg.png',
+                      const Color(0xFF00B2A9),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 40),
+              _buildRecentTransactionsHeader(),
+              _buildEmptyState(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- دوال المكونات (بقيت كما هي في كودك لضمان ثبات التصميم) ---
+
   void _showConversionSheet(String provider, Color color) {
     showModalBottomSheet(
       context: context,
@@ -95,8 +113,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 20),
               Text('تحويل رصيد $provider', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
-              
-              // حقل الإدخال
               TextField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
@@ -111,12 +127,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 onChanged: (val) {
                   _calculateAmount(val);
-                  setModalState(() {}); // لتحديث الحاسبة داخل النافذة
+                  setModalState(() {});
                 },
               ),
               const SizedBox(height: 25),
-
-              // الحاسبة الذكية المدمجة (كما طلبت في المخطط)
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(color: emeraldColor.withOpacity(0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: emeraldColor.withOpacity(0.1))),
@@ -129,7 +143,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               const SizedBox(height: 30),
-              
               SizedBox(
                 width: double.infinity,
                 height: 55,
@@ -147,7 +160,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // مكونات الواجهة الصغيرة
   Widget _buildCalcRow(String title, String value, Color color, {bool isBold = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -228,7 +240,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'الرئيسية'),
         BottomNavigationBarItem(icon: Icon(Icons.receipt_long_rounded), label: 'الطلبات'),
-        BottomNavigationBarItem(icon: Icon(Icons.confirmation_number_rounded), label: 'الخصومات'), // استبدال الحاسبة بالخصومات
+        BottomNavigationBarItem(icon: Icon(Icons.confirmation_number_rounded), label: 'الخصومات'),
         BottomNavigationBarItem(icon: Icon(Icons.person_outline_rounded), label: 'الملف'),
       ],
     );
