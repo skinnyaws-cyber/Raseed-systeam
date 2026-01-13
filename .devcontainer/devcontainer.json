@@ -1,0 +1,19 @@
+{
+    "name": "Flutter Raseed Environment",
+    "image": "mcr.microsoft.com/devcontainers/universal:2",
+    "features": {
+        // هذه الميزة تقوم بتثبيت فلاتر تلقائياً بأحدث نسخة مستقرة
+        "ghcr.io/devcontainers/features/flutter:1": {
+            "version": "stable"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "Dart-Code.flutter",
+                "Dart-Code.dart-code"
+            ]
+        }
+    },
+    "postCreateCommand": "flutter doctor && flutter config --enable-web"
+}
