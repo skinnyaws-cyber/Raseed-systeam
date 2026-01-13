@@ -1,11 +1,6 @@
 {
     "name": "Flutter Raseed Environment",
     "image": "mcr.microsoft.com/devcontainers/universal:2",
-    "features": {
-        "ghcr.io/devcontainers/features/flutter:1": {
-            "version": "stable"
-        }
-    },
     "customizations": {
         "vscode": {
             "extensions": [
@@ -14,5 +9,5 @@
             ]
         }
     },
-    "postCreateCommand": "flutter config --enable-web && flutter doctor"
+    "postCreateCommand": "if [ ! -d \"flutter\" ]; then git clone https://github.com/flutter/flutter.git -b stable; fi && export PATH=\"$PATH:$(pwd)/flutter/bin\" && flutter doctor && flutter config --enable-web"
 }
