@@ -23,6 +23,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    - assets/fonts/images/asiacell_logo.png
+    - assets/fonts/images/zain_logo.png
+
   # هنا نقوم بتعريف الخط الذي اخترته "IBM Plex Sans Arabic"
   fonts:
     - family: IBMPlexSansArabic
