@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'onboarding_screen.dart'; // استدعاء الملف الجديد
+import 'onboarding_screen.dart'; 
+import 'signup_screen.dart';     
 
 void main() {
   runApp(const RaseedApp());
@@ -18,7 +19,11 @@ class RaseedApp extends StatelessWidget {
         fontFamily: 'IBMPlexSansArabic',
         useMaterial3: true,
       ),
-      home: const OnboardingScreen(), // فتح واجهة الترحيب
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const OnboardingScreen(),
+        '/login': (context) => const SignUpScreen(),
+      },
     );
   }
 }
