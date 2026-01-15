@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'discounts_screen.dart';
 import 'orders_screen.dart';
 import 'profile_screen.dart';
+import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
