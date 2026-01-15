@@ -18,11 +18,11 @@ class NotificationsScreen extends StatelessWidget {
         ),
       ),
       body: ListView.builder(
-        itemCount: 3, // عدد الإشعارات التجريبية
+        itemCount: 3, 
         padding: const EdgeInsets.all(20),
         itemBuilder: (context, index) {
           return Container(
-            margin: const EdgeInsets.bottom(15),
+            margin: const EdgeInsets.only(bottom: 15), // تم تصحيح هذا السطر هنا
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               color: Colors.white,
