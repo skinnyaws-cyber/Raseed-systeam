@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart'; // تأكد من إضافة الحزمة في pubspec.yaml
+import 'package:url_launcher/url_launcher.dart'; 
 import 'manage_payments_screen.dart';
 import 'successful_operations_screen.dart'; 
-import 'signup_screen.dart'; // استيراد واجهة التسجيل للربط
+import 'signup_screen.dart'; 
+// استورد واجهة تسجيل الدخول الخاصة بك هنا لتفعيل تسجيل الخروج
+// import 'login_screen.dart'; 
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -23,7 +25,7 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 25),
               _buildSettingsSection(context),
               const SizedBox(height: 20),
-              _buildAccountActions(context), // قسم إضافة وتبديل الحسابات الجديد
+              _buildAccountActions(context),
               const SizedBox(height: 30),
             ],
           ),
@@ -31,6 +33,8 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
+  // ... (نفس الدوال السابقة: _buildProfileHeader, _buildTotalTransferredCard) ...
 
   Widget _buildProfileHeader() {
     return Column(
@@ -41,10 +45,9 @@ class ProfileScreen extends StatelessWidget {
           child: Icon(Icons.person_rounded, size: 50, color: emeraldColor),
         ),
         const SizedBox(height: 15),
-        const Text('أحمد العراقي', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)), // 
-        const Text('ID: #882190', style: TextStyle(color: Colors.grey, fontSize: 13)), // 
+        const Text('أحمد العراقي', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        const Text('ID: #882190', style: TextStyle(color: Colors.grey, fontSize: 13)),
         const SizedBox(height: 8),
-        // تم حذف جملة "عضو زمردي" بناءً على طلبك 
       ],
     );
   }
@@ -61,16 +64,16 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(Icons.account_balance_wallet_rounded, color: Colors.grey, size: 30), // [cite: 213]
+          const Icon(Icons.account_balance_wallet_rounded, color: Colors.grey, size: 30),
           const SizedBox(height: 10),
           const Text('إجمالي الأموال المحولة لمحفظتك', 
-            style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)), // [cite: 213]
+            style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 10),
           Text('145,500 د.ع', 
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: emeraldColor)), // 
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: emeraldColor)),
           const SizedBox(height: 5),
           const Text('تم حسابها تلقائياً بعد خصم العمولة', 
-            style: TextStyle(color: Colors.grey, fontSize: 11)), // 
+            style: TextStyle(color: Colors.grey, fontSize: 11)),
         ],
       ),
     );
@@ -87,7 +90,7 @@ class ProfileScreen extends StatelessWidget {
             Icons.phone_android_rounded, 
             'أرقام استلام المستحقات', 
             'إدارة أرقام ZainCash و Qi Card',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManagePaymentsScreen())), // [cite: 216]
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManagePaymentsScreen())),
           ),
           _buildSettingsTile(
             Icons.assignment_turned_in_rounded, 
@@ -102,12 +105,62 @@ class ProfileScreen extends StatelessWidget {
             onTap: () => _showSupportSheet(context), 
           ),
           const Divider(indent: 20, endIndent: 20),
-          _buildSettingsTile(Icons.info_outline_rounded, 'عن تطبيق رصيد', 'شروط الاستخدام والعمولات'), // [cite: 217]
-          _buildSettingsTile(Icons.logout_rounded, 'تسجيل الخروج', '', isLogout: true), // [cite: 218]
+          
+          // تعديل خيار "عن تطبيق رصيد" للربط الخارجي مستقبلاً
+          _buildSettingsTile(
+            Icons.info_outline_rounded, 
+            'عن تطبيق رصيد', 
+            'شروط الاستخدام والعمولات',
+            onTap: () async {
+              // سطر مخصص للمستقبل: ضع رابط موقعك هنا
+              final Uri url = Uri.parse('https://your-website-link.com'); 
+              if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('عذراً، لا يمكن فتح الرابط حالياً'))
+                );
+              }
+            },
+          ),
+          
+          // تفعيل زر تسجيل الخروج
+          _buildSettingsTile(
+            Icons.logout_rounded, 
+            'تسجيل الخروج', 
+            '', 
+            isLogout: true,
+            onTap: () => _showLogoutDialog(context),
+          ),
         ],
       ),
     );
   }
+
+  // دالة لتأكيد تسجيل الخروج
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تسجيل الخروج'),
+        content: const Text('هل أنت متأكد أنك تريد تسجيل الخروج من حسابك؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () {
+              // هنا نقوم بالعودة لواجهة البداية وحذف كل الصفحات السابقة من الذاكرة
+              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+              // ملاحظة: تأكد من تعريف اسم المسار '/login' في ملف main.dart أو استبدله بـ MaterialPageRoute
+            },
+            child: const Text('خروج', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ... (نفس الدوال المساعدة: _buildAccountActions, _buildSupportSheet, _buildSettingsTile) ...
 
   Widget _buildAccountActions(BuildContext context) {
     return Padding(
@@ -115,13 +168,11 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         children: [
           _buildActionBtn(context, 'اضافة حساب', Icons.person_add_alt_1_rounded, Colors.blueGrey, () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const SignUpScreen())); // توجيه لواجهة التسجيل 
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const SignUpScreen()));
           }),
           const SizedBox(height: 10),
           _buildActionBtn(context, 'تبديل الحساب', Icons.swap_horiz_rounded, emeraldColor, () {
-             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('جاري الانتقال للحساب الآخر...'))
-            );
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري الانتقال للحساب الآخر...')));
           }),
         ],
       ),
@@ -158,16 +209,10 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 25),
             _buildSupportOption(Icons.telegram, 'Telegram', 'Support via Telegram', () async {
               final Uri url = Uri.parse('https://t.me/black4crow');
-              if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-                throw 'Could not launch $url';
-              }
+              if (!await launchUrl(url, mode: LaunchMode.externalApplication)) throw 'Could not launch $url';
             }),
-            _buildSupportOption(Icons.chat_bubble_outline_rounded, 'WhatsApp', 'Support via WhatsApp', () {
-              // سطر مخصص للمستقبل: أضف رابط الواتساب هنا (api.whatsapp.com/send?phone=...)
-            }),
-            _buildSupportOption(Icons.email_outlined, 'Email', 'Support via Email', () {
-              // سطر مخصص للمستقبل: أضف رابط الإيميل هنا (mailto:support@raseed.com)
-            }),
+            _buildSupportOption(Icons.chat_bubble_outline_rounded, 'WhatsApp', 'Support via WhatsApp', () {}),
+            _buildSupportOption(Icons.email_outlined, 'Email', 'Support via Email', () {}),
           ],
         ),
       ),
@@ -195,9 +240,9 @@ class ProfileScreen extends StatelessWidget {
           color: isLogout ? Colors.red.withOpacity(0.05) : const Color(0xFFF4F7F7),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: isLogout ? Colors.red : emeraldColor, size: 20), // [cite: 220]
+        child: Icon(icon, color: isLogout ? Colors.red : emeraldColor, size: 20),
       ),
-      title: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isLogout ? Colors.red : Colors.black)), // [cite: 220]
+      title: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isLogout ? Colors.red : Colors.black)),
       subtitle: subtitle.isNotEmpty ? Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)) : null,
       trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
       onTap: onTap,
