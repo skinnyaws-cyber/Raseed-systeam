@@ -114,7 +114,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const Text('أهلاً بك في رصيد', style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.w600)),
                     Container(
                       decoration: BoxDecoration(color: Colors.black.withOpacity(0.1), shape: BoxShape.circle),
-                      child: IconButton(icon: const Icon(Icons.notifications_none_rounded, color: Colors.black87), onPressed: () {}),
+                      child: IconButton(
+                      icon: const Icon(Icons.notifications_none_rounded, color: Colors.black87),
+                      onPressed: () {
+                        // الربط هنا
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const NotificationsScreen()),
                     ),
                   ],
                 ),
