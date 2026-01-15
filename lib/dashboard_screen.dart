@@ -74,9 +74,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      Expanded(child: _buildNetworkCard('آسيا سيل', 'Asiacell', 'https://upload.wikimedia.org/wikipedia/ar/thumb/2/23/Asiacell_Logo.svg/1024px-Asiacell_Logo.svg.png', const Color(0xFFEE2737))),
+                      // تم تعديل المسارات هنا لتطابق مسارك الخاص: assets/fonts/images/
+                      Expanded(child: _buildNetworkCard('آسيا سيل', 'Asiacell', 'assets/fonts/images/asiacell_logo.png', const Color(0xFFEE2737))),
                       const SizedBox(width: 15),
-                      Expanded(child: _buildNetworkCard('زين العراق', 'Zain IQ', 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Zain_Logo.svg/1200px-Zain_Logo.svg.png', const Color(0xFF00B2A9))),
+                      Expanded(child: _buildNetworkCard('زين العراق', 'Zain IQ', 'assets/fonts/images/zain_logo.png', const Color(0xFF00B2A9))),
                     ],
                   ),
                   const SizedBox(height: 40),
@@ -117,7 +118,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: IconButton(
                         icon: const Icon(Icons.notifications_none_rounded, color: Colors.black87), 
                         onPressed: () {
-                          // برمجة الانتقال لواجهة الإشعارات
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const NotificationsScreen()),
@@ -178,14 +178,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 10),
                 Text('تحويل رصيد $provider', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 25),
-                
                 _buildFieldLabel('اختر نوع التحويل:'),
                 DropdownButtonFormField<String>(
                   decoration: _inputDecoration('نوع التحويل'),
                   items: const [DropdownMenuItem(value: 'direct', child: Text('تحويل رصيد مباشر')), DropdownMenuItem(value: 'code', child: Text('ارسال كود السري / QR'))],
                   onChanged: (val) => setModalState(() => _transferType = val),
                 ),
-                
                 if (_transferType != null) ...[
                   const SizedBox(height: 15),
                   if (_transferType == 'code') ...[
@@ -203,7 +201,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onChanged: (val) => setModalState(() => _telecomProvider = val),
                   ),
                 ],
-                
                 if (_telecomProvider != null) ...[
                   const SizedBox(height: 15),
                   _buildFieldLabel('بطاقة الاستلام:'),
@@ -213,7 +210,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onChanged: (val) => setModalState(() => _receivingCard = val),
                   ),
                 ],
-                
                 if (_receivingCard != null) ...[
                   const SizedBox(height: 15),
                   _buildFieldLabel('رقم الهاتف المسجل:'),
@@ -266,7 +262,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildFieldLabel(String label) => Align(alignment: Alignment.centerRight, child: Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))));
   InputDecoration _inputDecoration(String hint) => InputDecoration(hintText: hint, filled: true, fillColor: Colors.grey.shade100, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12));
-  Widget _buildNetworkCard(String name, String sub, String url, Color color) { return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)), child: Column(children: [Image.network(url, height: 40), const SizedBox(height: 10), Text(name, style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 10), ElevatedButton(onPressed: () => _showConversionSheet(name, color), style: ElevatedButton.styleFrom(backgroundColor: color, minimumSize: const Size(double.infinity, 36)), child: const Text('تحويل', style: TextStyle(color: Colors.white, fontSize: 12))) ])); }
+  
+  // الدالة المعدلة لعرض الصور من الـ Assets
+  Widget _buildNetworkCard(String name, String sub, String imagePath, Color color) { 
+    return Container(
+      padding: const EdgeInsets.all(20), 
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)), 
+      child: Column(children: [
+        Image.asset(imagePath, height: 60, width: 60, fit: BoxFit.contain), // استخدام الصور المحلية
+        const SizedBox(height: 10), 
+        Text(name, style: const TextStyle(fontWeight: FontWeight.bold)), 
+        const SizedBox(height: 10), 
+        ElevatedButton(onPressed: () => _showConversionSheet(name, color), style: ElevatedButton.styleFrom(backgroundColor: color, minimumSize: const Size(double.infinity, 36)), child: const Text('تحويل', style: TextStyle(color: Colors.white, fontSize: 12))) 
+      ])); 
+  }
+
   Widget _buildRecentTransactionsHeader() { return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('آخر التحويلات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), TextButton(onPressed: () {}, child: Text('الكل', style: TextStyle(color: emeraldColor)))]); }
 
   Widget _buildEmptyState() {
