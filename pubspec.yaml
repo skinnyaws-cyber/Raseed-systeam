@@ -13,7 +13,8 @@ dependencies:
   cupertino_icons: ^1.0.2
   google_fonts: ^6.1.0 # لدعم الخطوط العصرية
   intl: ^0.18.1 # لدعم العملة واللغة العربية
-  http: ^1.1.0 # لربط التطبيق بالسيرفر
+  http: ^1.1.0 
+  url_launcher: ^6.2.5
 
 dev_dependencies:
   flutter_test:
