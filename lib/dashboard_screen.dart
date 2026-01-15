@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
+import 'notifications_screen.dart'; // السطر المضاف للربط
 import 'discounts_screen.dart';
 import 'orders_screen.dart';
 import 'profile_screen.dart';
-import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -115,12 +115,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Container(
                       decoration: BoxDecoration(color: Colors.black.withOpacity(0.1), shape: BoxShape.circle),
                       child: IconButton(
-                      icon: const Icon(Icons.notifications_none_rounded, color: Colors.black87),
-                      onPressed: () {
-                        // الربط هنا
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                        icon: const Icon(Icons.notifications_none_rounded, color: Colors.black87), 
+                        onPressed: () {
+                          // برمجة الانتقال لواجهة الإشعارات
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                          );
+                        },
+                      ),
                     ),
                   ],
                 ),
