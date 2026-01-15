@@ -162,7 +162,7 @@ class ProfileScreen extends StatelessWidget {
                 throw 'Could not launch $url';
               }
             }),
-            _buildSupportOption(Icons.whatsapp, 'WhatsApp', 'Support via WhatsApp', () {
+            _buildSupportOption(Icons.chat_bubble_outline_rounded, 'WhatsApp', 'Support via WhatsApp', () {
               // سطر مخصص للمستقبل: أضف رابط الواتساب هنا (api.whatsapp.com/send?phone=...)
             }),
             _buildSupportOption(Icons.email_outlined, 'Email', 'Support via Email', () {
