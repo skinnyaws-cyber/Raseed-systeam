@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
-import 'notifications_screen.dart'; // هذا هو السطر المضاف للربط
+import 'notifications_screen.dart'; 
 import 'discounts_screen.dart';
 import 'orders_screen.dart';
 import 'profile_screen.dart';
@@ -16,12 +16,12 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   final Color emeraldColor = const Color(0xFF50878C);
-  final Color neonGreen = const Color(0xFFCCFF00); // اللون الفسفوري المطلوب
+  final Color neonGreen = const Color(0xFFCCFF00); 
 
   String? _transferType; 
   String? _telecomProvider;
   String? _receivingCard;
-  final String _userRegisteredPhone = "07701234567"; 
+  final String _userRegisteredPhone = "07701234567";
   
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _codeController = TextEditingController();
@@ -33,15 +33,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isInvalidAmount = false;
 
   void _calculateAmount(String value) {
-    if (value.isEmpty) { setState(() { _isInvalidAmount = false; _receiveAmount = 0; }); return; }
+    if (value.isEmpty) { 
+      setState(() { _isInvalidAmount = false; _receiveAmount = 0; }); 
+      return; 
+    }
     int amount = int.tryParse(value) ?? 0;
     setState(() {
       _isInvalidAmount = (amount >= 1000 && amount % 1000 != 0);
-      if (amount < 2000) { _commission = 0; _receiveAmount = 0; }
-      else if (amount >= 10000) {
+      if (amount < 2000) { 
+        _commission = 0; _receiveAmount = 0; 
+      } else if (amount >= 10000) {
         _commission = ((amount * 0.10) / 1000).round() * 1000;
         _receiveAmount = amount - _commission;
-      } else { _commission = 1000; _receiveAmount = amount - _commission; }
+      } else { 
+        _commission = 1000; _receiveAmount = amount - _commission; 
+      }
     });
   }
 
@@ -74,7 +80,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      // تم تعديل المسارات هنا لتطابق مسارك الخاص: assets/fonts/images/
                       Expanded(child: _buildNetworkCard('آسيا سيل', 'Asiacell', 'assets/fonts/images/asiacell_logo.png', const Color(0xFFEE2737))),
                       const SizedBox(width: 15),
                       Expanded(child: _buildNetworkCard('زين العراق', 'Zain IQ', 'assets/fonts/images/zain_logo.png', const Color(0xFF00B2A9))),
@@ -150,6 +155,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildNetworkCard(String name, String sub, String imagePath, Color color) { 
+    return Container(
+      height: 180, 
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.cover, 
+              ),
+            ),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black.withOpacity(0.1), Colors.black.withOpacity(0.7)],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: () => _showConversionSheet(name, color),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      minimumSize: const Size(double.infinity, 36),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('تحويل', style: TextStyle(color: Colors.white, fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showConversionSheet(String provider, Color color) {
     showModalBottomSheet(
       context: context,
@@ -167,15 +225,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_forward_ios_rounded, size: 22, color: Colors.black87), 
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                    IconButton(icon: const Icon(Icons.arrow_forward_ios_rounded, size: 22), onPressed: () => Navigator.pop(context)),
                     Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
                     const SizedBox(width: 40), 
                   ],
                 ),
-                const SizedBox(height: 10),
                 Text('تحويل رصيد $provider', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 25),
                 _buildFieldLabel('اختر نوع التحويل:'),
@@ -188,10 +242,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 15),
                   if (_transferType == 'code') ...[
                     _buildFieldLabel('الكود السري للكرت:'),
-                    TextField(
-                      controller: _codeController,
-                      decoration: _inputDecoration('ادخل الكود').copyWith(suffixIcon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.blue)),
-                    ),
+                    TextField(controller: _codeController, decoration: _inputDecoration('ادخل الكود').copyWith(suffixIcon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.blue))),
                     const SizedBox(height: 15),
                   ],
                   _buildFieldLabel('شركة الاتصالات:'),
@@ -243,11 +294,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: SizedBox(
         width: double.infinity, height: 60,
         child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: neonGreen,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            elevation: 0,
-          ),
+          style: ElevatedButton.styleFrom(backgroundColor: neonGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), elevation: 0),
           onPressed: canConfirm ? () async {
             setModalState(() => _isProcessing = true);
             await Future.delayed(const Duration(seconds: 4));
@@ -262,21 +309,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildFieldLabel(String label) => Align(alignment: Alignment.centerRight, child: Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))));
   InputDecoration _inputDecoration(String hint) => InputDecoration(hintText: hint, filled: true, fillColor: Colors.grey.shade100, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12));
-  
-  // الدالة المعدلة لعرض الصور من الـ Assets
-  Widget _buildNetworkCard(String name, String sub, String imagePath, Color color) { 
-    return Container(
-      padding: const EdgeInsets.all(20), 
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)), 
-      child: Column(children: [
-        Image.asset(imagePath, height: 60, width: 60, fit: BoxFit.contain), // استخدام الصور المحلية
-        const SizedBox(height: 10), 
-        Text(name, style: const TextStyle(fontWeight: FontWeight.bold)), 
-        const SizedBox(height: 10), 
-        ElevatedButton(onPressed: () => _showConversionSheet(name, color), style: ElevatedButton.styleFrom(backgroundColor: color, minimumSize: const Size(double.infinity, 36)), child: const Text('تحويل', style: TextStyle(color: Colors.white, fontSize: 12))) 
-      ])); 
-  }
-
   Widget _buildRecentTransactionsHeader() { return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('آخر التحويلات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), TextButton(onPressed: () {}, child: Text('الكل', style: TextStyle(color: emeraldColor)))]); }
 
   Widget _buildEmptyState() {
@@ -287,11 +319,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))]
-              ),
+              decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))]),
               child: Icon(Icons.history_toggle_off_rounded, size: 50, color: Colors.grey.shade400),
             ),
             const SizedBox(height: 15),
