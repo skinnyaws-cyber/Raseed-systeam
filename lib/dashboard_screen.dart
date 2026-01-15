@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
-import 'notifications_screen.dart'; // السطر المضاف للربط
+import 'notifications_screen.dart'; // هذا هو السطر المضاف للربط
 import 'discounts_screen.dart';
 import 'orders_screen.dart';
 import 'profile_screen.dart';
@@ -164,16 +164,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // رأس الواجهة مع سهم العودة
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_forward_ios_rounded, size: 22, color: Colors.black87), // سهم العودة >
+                      icon: const Icon(Icons.arrow_forward_ios_rounded, size: 22, color: Colors.black87), 
                       onPressed: () => Navigator.pop(context),
                     ),
                     Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
-                    const SizedBox(width: 40), // لموازنة السهم في الطرف الآخر
+                    const SizedBox(width: 40), 
                   ],
                 ),
                 const SizedBox(height: 10),
