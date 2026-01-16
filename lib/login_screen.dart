@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // ضروري لمنع إدخال الأحرف
 import 'dashboard_screen.dart';
 import 'signup_screen.dart';
 
@@ -11,6 +12,32 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
+  final TextEditingController _phoneController = TextEditingController();
+  String? _errorMessage; // لعرض رسالة خطأ الرقم
+
+  // دالة التحقق من الرقم (استبعاد كورك وقبول آسيا وزين)
+  bool _validateIraqiNumber(String value) {
+    if (value.isEmpty) {
+      setState(() => _errorMessage = null);
+      return false;
+    }
+    
+    // استبعاد شركة كورك (تبدأ بـ 075 أو 75)
+    if (value.startsWith('075') || value.startsWith('75')) {
+      setState(() => _errorMessage = "نعتذر، الخدمة لا تدعم أرقام شركة كورك");
+      return false;
+    }
+    
+    // قبول آسيا سيل وزين العراق فقط
+    RegExp activeNetworks = RegExp(r'^(077|77|078|78|079|79)');
+    if (!activeNetworks.hasMatch(value)) {
+      setState(() => _errorMessage = "يرجى إدخال رقم آسيا سيل أو زين صحيح");
+      return false;
+    }
+
+    setState(() => _errorMessage = null);
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +61,9 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text('سجل دخولك للمتابعة في نظام رصيد', style: TextStyle(color: Colors.grey)),
               const SizedBox(height: 40),
 
-              _buildInput(label: 'رقم الهاتف أو البريد', icon: Icons.email_outlined),
+              // حقل الهاتف المطور (نفس منطق واجهة التسجيل)
+              _buildPhoneField(),
+              
               const SizedBox(height: 20),
 
               _buildInput(
@@ -51,18 +80,20 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 20),
 
+              // زر تسجيل الدخول
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: (_errorMessage == null && _phoneController.text.isNotEmpty) ? () {
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
-                  },
+                  } : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal.shade700,
+                    disabledBackgroundColor: Colors.grey.shade400,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
-                  child: const Text('تسجيل الدخول', style: TextStyle(fontSize: 18, color: Colors.white)),
+                  child: const Text('تسجيل الدخول', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(height: 30),
@@ -84,6 +115,35 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ودجت حقل الهاتف مع علم العراق
+  Widget _buildPhoneField() {
+    return TextField(
+      controller: _phoneController,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly], // أرقام فقط
+      onChanged: (v) => _validateIraqiNumber(v),
+      decoration: InputDecoration(
+        labelText: 'رقم الهاتف',
+        errorText: _errorMessage,
+        prefixIcon: Container(
+          width: 95,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Row(
+            children: [
+              const Text('🇮🇶', style: TextStyle(fontSize: 20)),
+              const SizedBox(width: 5),
+              Text('+964', style: TextStyle(color: Colors.teal.shade700, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.teal.shade700, width: 1)),
+      ),
+    );
+  }
+
   Widget _buildInput({required String label, required IconData icon, bool isPassword = false, bool isVisible = false, VoidCallback? onToggleVisibility}) {
     return TextField(
       obscureText: isPassword && !isVisible,
@@ -94,6 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.teal.shade700, width: 1)),
       ),
     );
   }
