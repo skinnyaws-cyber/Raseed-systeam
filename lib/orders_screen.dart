@@ -36,7 +36,6 @@ class OrdersScreen extends StatelessWidget {
   }
 
   Widget _buildOrdersList({required bool isActive}) {
-    // البيانات التجريبية المحدثة لتشمل تفاصيل الوصل
     final List<Map<String, dynamic>> orders = isActive 
       ? [
           {
@@ -75,7 +74,7 @@ class OrdersScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final order = orders[index];
         return GestureDetector(
-          onTap: () => _showOrderDetails(context, order), // عند الضغط يفتح التفاصيل
+          onTap: () => _showOrderDetails(context, order),
           child: Container(
             margin: const EdgeInsets.only(bottom: 15),
             padding: const EdgeInsets.all(15),
@@ -124,14 +123,13 @@ class OrdersScreen extends StatelessWidget {
     );
   }
 
-  // دالة عرض تفاصيل الطلب (الوصل)
   void _showOrderDetails(BuildContext context, Map<String, dynamic> order) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.75,
+        height: MediaQuery.of(context).size.height * 0.70, // تم تصغير الارتفاع قليلاً ليناسب المتصفح
         decoration: const BoxDecoration(
           color: Color(0xFFF4F7F7),
           borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
@@ -141,13 +139,12 @@ class OrdersScreen extends StatelessWidget {
             const SizedBox(height: 15),
             Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
             const SizedBox(height: 20),
-            const Text('تفاصيل الوصل', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
+            const Text('تفاصيل الوصل', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 15),
             
-            // تصميم الوصل
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 25),
-              padding: const EdgeInsets.all(20),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -159,48 +156,61 @@ class OrdersScreen extends StatelessWidget {
                   _buildReceiptRow('الشركة', order['provider']),
                   _buildReceiptRow('نوع العملية', order['type']),
                   _buildReceiptRow('رقم الهاتف', order['phone']),
-                  const Divider(height: 30),
+                  const Divider(height: 20),
                   _buildReceiptRow('المبلغ المرسل', '${order['amount']} د.ع'),
                   _buildReceiptRow('العمولة', '${order['commission']} د.ع', isNegative: true),
-                  const Divider(height: 30),
+                  const Divider(height: 20),
                   _buildReceiptRow('الصافي المستلم', '${order['net']} د.ع', isBold: true),
                   _buildReceiptRow('التاريخ', order['date']),
-                  _buildReceiptRow('الوقت', order['time']),
-                  const SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: order['status'] == 'تم التحويل' ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'حالة الطلب: ${order['status']}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: order['status'] == 'تم التحويل' ? Colors.green : Colors.orange,
+                ],
+              ),
+            ),
+            
+            // التعديل المطلوب: وضع الأزرار بجانب بعضها لتوفير مساحة عمودية
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: Row(
+                children: [
+                  // حالة الطلب (زر مصغر لعرض الحالة)
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: order['status'] == 'تم التحويل' ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: order['status'] == 'تم التحويل' ? Colors.green.withOpacity(0.3) : Colors.orange.withOpacity(0.3)),
+                      ),
+                      child: Center(
+                        child: Text(
+                          order['status'],
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: order['status'] == 'تم التحويل' ? Colors.green : Colors.orange,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.all(25.0),
-              child: SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: emeraldColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  const SizedBox(width: 10),
+                  // زر الإغلاق
+                  Expanded(
+                    flex: 1,
+                    child: SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: emeraldColor,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('إغلاق', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                      ),
+                    ),
                   ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('إغلاق', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
+                ],
               ),
             ),
           ],
@@ -211,16 +221,16 @@ class OrdersScreen extends StatelessWidget {
 
   Widget _buildReceiptRow(String label, String value, {bool isNegative = false, bool isBold = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
           Text(
             value,
             style: TextStyle(
               fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-              fontSize: isBold ? 16 : 14,
+              fontSize: isBold ? 15 : 13,
               color: isNegative ? Colors.red : Colors.black,
             ),
           ),
