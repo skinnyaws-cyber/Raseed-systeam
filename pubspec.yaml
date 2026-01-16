@@ -15,6 +15,7 @@ dependencies:
   intl: ^0.18.1 # لدعم العملة واللغة العربية
   http: ^1.1.0 
   url_launcher: ^6.2.5
+  flutter_jailbreak_detection: ^1.1.0
 
 dev_dependencies:
   flutter_test:
