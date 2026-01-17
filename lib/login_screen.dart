@@ -112,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 alignment: Alignment.centerLeft,
                 child: TextButton(
                   onPressed: () {
-                    // سيتم ربطها بواجهة استعادة كلمة المرور في الخطوة القادمة
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()));
                   }, 
                   child: const Text('نسيت كلمة المرور؟')
                 ),
