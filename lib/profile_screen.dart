@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart'; 
-import 'package:firebase_auth/firebase_auth.dart'; // تمت الإضافة للإصلاح
+import 'package:firebase_auth/firebase_auth.dart'; 
 import 'manage_payments_screen.dart';
 import 'successful_operations_screen.dart'; 
 import 'signup_screen.dart'; 
-import 'login_screen.dart'; // تمت الإضافة للإصلاح
+import 'login_screen.dart'; 
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -189,7 +189,7 @@ class ProfileScreen extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => SignupScreen()),
+                MaterialPageRoute(builder: (context) => const SignUpScreen()), // تمت إزالة كلمة const من هنا
               );
             },
           ),
@@ -200,7 +200,6 @@ class ProfileScreen extends StatelessWidget {
             "الخروج من الحساب الحالي",
             isLogout: true,
             onTap: () async {
-              // --- منطق الإصلاح الجديد هنا ---
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
                 Navigator.pushAndRemoveUntil(
