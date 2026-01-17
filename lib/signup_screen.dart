@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // ضروري لمنع إدخال الأحرف
+import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // مكتبة المصادقة
+import 'package:cloud_firestore/cloud_firestore.dart'; // مكتبة قاعدة البيانات
 import 'dashboard_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -11,11 +13,13 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   bool _isPasswordVisible = false;
-  bool _isTermsAccepted = false; // حالة الموافقة على الشروط
+  bool _isTermsAccepted = false;
+  bool _isLoading = false; // لمتابعة حالة عملية التسجيل
+  
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String? _errorMessage; // لعرض رسالة خطأ الرقم
+  String? _errorMessage;
 
   // دالة التحقق من الرقم (استبعاد كورك وقبول آسيا وزين)
   bool _validateIraqiNumber(String value) {
@@ -23,25 +27,67 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() => _errorMessage = null);
       return false;
     }
-    
-    // استبعاد شركة كورك (تبدأ بـ 075 أو 75)
     if (value.startsWith('075') || value.startsWith('75')) {
       setState(() => _errorMessage = "نعتذر، الخدمة لا تدعم أرقام شركة كورك حالياً");
       return false;
     }
-    
-    // قبول آسيا سيل وزين العراق فقط (المقدمات: 077, 77, 078, 78, 079, 79)
     RegExp activeNetworks = RegExp(r'^(077|77|078|78|079|79)');
     if (!activeNetworks.hasMatch(value)) {
       setState(() => _errorMessage = "يرجى إدخال رقم آسيا سيل أو زين العراق صحيح");
       return false;
     }
-
     setState(() => _errorMessage = null);
     return true;
   }
 
-  // دالة لإظهار نافذة البنود والشروط
+  // --- دالة الربط مع Firebase ---
+  Future<void> _handleSignUp() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      // 1. تحويل رقم الهاتف إلى بريد وهمي للنظام
+      String phoneNumber = _phoneController.text.trim();
+      String email = "$phoneNumber@raseed.com";
+      String password = _passwordController.text.trim();
+
+      // 2. إنشاء الحساب في Firebase Authentication
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // 3. تخزين بيانات المستخدم الإضافية في Firestore
+      // سيتم إنشاء جدول 'users' تلقائياً عند أول عملية كتابة
+      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+        'full_name': _nameController.text.trim(),
+        'phone_number': phoneNumber,
+        'uid': userCredential.user!.uid,
+        'balance': 0.0, // الرصيد الافتراضي عند التسجيل
+        'created_at': FieldValue.serverTimestamp(),
+      });
+
+      // 4. الانتقال للشاشة الرئيسية بعد النجاح
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = "حدث خطأ أثناء التسجيل";
+      if (e.code == 'email-already-in-use') {
+        message = "هذا الرقم مسجل مسبقاً، جرب تسجيل الدخول";
+      } else if (e.code == 'weak-password') {
+        message = "كلمة المرور ضعيفة جداً";
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("فشل الاتصال بالسيرفر")));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   void _showTermsDialog() {
     showDialog(
       context: context,
@@ -58,10 +104,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 'مرحباً بك في نظام رصيد الزمردي. باستخدامك لهذا التطبيق، أنت توافق على البنود التالية:\n\n'
                 '1. الالتزام بكافة القوانين المحلية المعمول بها في العراق.\n'
                 '2. التطبيق غير مسؤول عن التحويلات الخاطئة الناتجة عن إدخال أرقام هواتف غير صحيحة.\n'
-                '3. يحق لإدارة التطبيق حظر أي حساب يثبت تلاعبه بنظام النقاط أو مشاهدة الإعلانات بطرق غير شرعية.\n'
+                '3. يحق لإدارة التطبيق حظر أي حساب يثبت تلاعبه بنظام النقاط.\n'
                 '4. يتم معالجة الطلبات المالية خلال أوقات العمل الرسمية فقط.\n'
-                '5. خصوصية بياناتك محمية ولن يتم مشاركتها مع أي طرف ثالث.\n\n'
-                'ملاحظة: يمكنك تعديل هذه البنود لاحقاً من الكود.',
+                '5. خصوصية بياناتك محمية ولن يتم مشاركتها مع أي طرف ثالث.',
                 style: TextStyle(fontSize: 14, height: 1.5, fontFamily: 'Cairo'),
                 textAlign: TextAlign.right,
               ),
@@ -97,7 +142,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
               const SizedBox(height: 40),
 
-              // حقل الاسم
               _buildTextField(
                 controller: _nameController,
                 label: 'الاسم الكامل', 
@@ -105,12 +149,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 20),
 
-              // حقل الهاتف مع العلم ومنطق الفحص
               _buildPhoneField(),
-              
               const SizedBox(height: 20),
 
-              // حقل كلمة المرور
               _buildTextField(
                 controller: _passwordController,
                 label: 'كلمة المرور',
@@ -121,34 +162,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   setState(() => _isPasswordVisible = !_isPasswordVisible);
                 },
               ),
-              
               const SizedBox(height: 20),
 
-              // مربع شروط الاستخدام التفاعلي
               _buildTermsCheckbox(),
 
               const SizedBox(height: 30),
 
-              // زر إنشاء الحساب
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: (_isTermsAccepted && _errorMessage == null && _phoneController.text.isNotEmpty) 
-                  ? () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const DashboardScreen()),
-                      );
-                  } : null, 
+                  onPressed: (_isTermsAccepted && _errorMessage == null && _phoneController.text.isNotEmpty && !_isLoading) 
+                  ? _handleSignUp : null, 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal.shade700,
                     disabledBackgroundColor: Colors.grey.shade400,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     elevation: 0,
                   ),
-                  child: const Text('إنشاء الحساب', 
-                    style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: _isLoading 
+                    ? const CircularProgressIndicator(color: Colors.white) 
+                    : const Text('إنشاء الحساب', 
+                        style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(height: 20),
@@ -172,7 +207,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // حقل الهاتف مع علم العراق ومنع الحروف
   Widget _buildPhoneField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,7 +240,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // ودجت شروط الاستخدام مع رابط قابل للضغط
   Widget _buildTermsCheckbox() {
     return Row(
       children: [
