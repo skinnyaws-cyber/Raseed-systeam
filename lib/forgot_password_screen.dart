@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart'; // المكتبة الجديدة للاتصال بالسيرفر
-import 'dart:math'; // لتوليد الرقم العشوائي
+import 'package:cloud_functions/cloud_functions.dart'; 
+import 'dart:math'; 
 import 'verify_code_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -15,14 +15,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _isLoading = false;
 
-  // 1. دالة توليد رمز عشوائي من 6 أرقام
   String _generateOTP() {
     var rnd = Random();
     var next = rnd.nextInt(899999) + 100000;
     return next.toString();
   }
 
-  // 2. دالة التحقق من الإيميل وإرسال الرمز عبر السيرفر
   Future<void> _verifyEmailAndSendCode() async {
     String email = _emailController.text.trim();
     if (email.isEmpty) {
@@ -33,17 +31,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
     
     try {
-      [cite_start]// البحث عن المستخدم في Firestore [cite: 253]
       var userQuery = await FirebaseFirestore.instance
           .collection('users')
           .where('recovery_email', isEqualTo: email)
           .get();
 
       if (userQuery.docs.isNotEmpty) {
-        // أ. توليد الرمز
         String otpCode = _generateOTP();
 
-        // ب. استدعاء الـ Cloud Function التي قمنا برفعها (sendRecoveryCode)
         HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('sendRecoveryCode');
         
         final results = await callable.call(<String, dynamic>{
@@ -52,7 +47,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         });
 
         if (results.data['success'] == true) {
-          // ج. حفظ الرمز في Firestore تحت سجل المستخدم للتحقق منه لاحقاً
           String docId = userQuery.docs.first.id;
           await FirebaseFirestore.instance.collection('users').doc(docId).update({
             'temp_otp': otpCode,
@@ -64,14 +58,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                [cite_start]builder: (context) => VerifyCodeScreen(email: email), // الانتقال لواجهة التحقق [cite: 254]
+                builder: (context) => VerifyCodeScreen(email: email),
               ),
             );
           }
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          [cite_start]const SnackBar(content: Text("عذراً، هذا الإيميل غير مرتبط بأي حساب [cite: 256]")),
+          const SnackBar(content: Text("عذراً، هذا الإيميل غير مرتبط بأي حساب")),
         );
       }
     } on FirebaseFunctionsException catch (e) {
@@ -83,7 +77,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SnackBar(content: Text("حدث خطأ غير متوقع، حاول ثانية")),
       );
     } finally {
-      [cite_start]if (mounted) setState(() => _isLoading = false); [cite: 258]
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -104,21 +98,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            [cite_start]Icon(Icons.lock_reset_rounded, size: 80, color: Colors.teal.shade700), [cite: 260]
+            Icon(Icons.lock_reset_rounded, size: 80, color: Colors.teal.shade700),
             const SizedBox(height: 30),
-            [cite_start]const Text('استعادة كلمة المرور', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)), [cite: 261]
+            const Text('استعادة كلمة المرور', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 15),
             const Text(
-              [cite_start]'أدخل إيميل الاسترداد المرتبط بحسابك، وسنقوم بإرسال رمز التحقق إليه [cite: 261]',
+              'أدخل إيميل الاسترداد المرتبط بحسابك، وسنقوم بإرسال رمز التحقق إليه',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey, height: 1.5),
             ),
             const SizedBox(height: 40),
             TextField(
               controller: _emailController,
-              [cite_start]keyboardType: TextInputType.emailAddress, [cite: 263]
+              keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
-                [cite_start]labelText: 'إيميل الاسترداد', [cite: 263]
+                labelText: 'إيميل الاسترداد',
                 prefixIcon: Icon(Icons.email_outlined, color: Colors.teal.shade700),
                 filled: true,
                 fillColor: Colors.white,
@@ -130,13 +124,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                [cite_start]onPressed: _isLoading ? null : _verifyEmailAndSendCode, [cite: 267]
+                onPressed: _isLoading ? null : _verifyEmailAndSendCode,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal.shade700,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
                 child: _isLoading 
-                    [cite_start]? const CircularProgressIndicator(color: Colors.white) [cite: 269]
+                    ? const CircularProgressIndicator(color: Colors.white)
                     : const Text('إرسال رمز التحقق', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
