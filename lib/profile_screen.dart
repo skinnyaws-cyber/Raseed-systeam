@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart'; 
+import 'package:firebase_auth/firebase_auth.dart'; // تمت الإضافة للإصلاح
 import 'manage_payments_screen.dart';
 import 'successful_operations_screen.dart'; 
 import 'signup_screen.dart'; 
-// استورد واجهة تسجيل الدخول الخاصة بك هنا لتفعيل تسجيل الخروج
-// import 'login_screen.dart'; 
+import 'login_screen.dart'; // تمت الإضافة للإصلاح
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -25,6 +25,8 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 25),
               _buildSettingsSection(context),
               const SizedBox(height: 20),
+              _buildSupportSection(),
+              const SizedBox(height: 20),
               _buildAccountActions(context),
               const SizedBox(height: 30),
             ],
@@ -34,46 +36,71 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // ... (نفس الدوال السابقة: _buildProfileHeader, _buildTotalTransferredCard) ...
-
   Widget _buildProfileHeader() {
     return Column(
       children: [
         CircleAvatar(
           radius: 50,
           backgroundColor: emeraldColor.withOpacity(0.1),
-          child: Icon(Icons.person_rounded, size: 50, color: emeraldColor),
+          child: Icon(Icons.person, size: 50, color: emeraldColor),
         ),
         const SizedBox(height: 15),
-        const Text('أحمد العراقي', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-        const Text('ID: #882190', style: TextStyle(color: Colors.grey, fontSize: 13)),
-        const SizedBox(height: 8),
+        const Text(
+          "مستخدم رصيد",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const Text(
+          "raseed_user@example.com",
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildTotalTransferredCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 25),
-      padding: const EdgeInsets.all(25),
-      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20)],
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Icon(Icons.account_balance_wallet_rounded, color: Colors.grey, size: 30),
-          const SizedBox(height: 10),
-          const Text('إجمالي الأموال المحولة لمحفظتك', 
-            style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 10),
-          Text('145,500 د.ع', 
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: emeraldColor)),
-          const SizedBox(height: 5),
-          const Text('تم حسابها تلقائياً بعد خصم العمولة', 
-            style: TextStyle(color: Colors.grey, fontSize: 11)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "إجمالي المحول",
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                "0 د.ع",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: emeraldColor,
+                ),
+              ),
+            ],
+          ),
+          Icon(Icons.account_balance_wallet_outlined, color: emeraldColor, size: 30),
         ],
       ),
     );
@@ -81,140 +108,110 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildSettingsSection(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 25),
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Column(
         children: [
           _buildSettingsTile(
-            Icons.phone_android_rounded, 
-            'أرقام استلام المستحقات', 
-            'إدارة أرقام ZainCash و Qi Card',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManagePaymentsScreen())),
+            Icons.history_rounded,
+            "سجل العمليات الناجحة",
+            "عرض كافة التحويلات السابقة",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SuccessfulOperationsScreen()),
+              );
+            },
           ),
+          const Divider(height: 1, indent: 60),
           _buildSettingsTile(
-            Icons.assignment_turned_in_rounded, 
-            'سجل العمليات الناجحة', 
-            'عرض تفاصيل الأرباح السابقة',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SuccessfulOperationsScreen())),
+            Icons.payment_rounded,
+            "إدارة طرق الدفع",
+            "بطاقاتك المحفوظة والتحويل",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ManagePaymentsScreen()),
+              );
+            },
           ),
-          _buildSettingsTile(
-            Icons.headset_mic_outlined, 
-            'الدعم الفني', 
-            'تواصل معنا في حال تأخر التحويل',
-            onTap: () => _showSupportSheet(context), 
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSupportSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          _buildSupportOption(
+            Icons.headset_mic_rounded,
+            "الدعم الفني",
+            "تحدث معنا لحل مشاكلك",
+            () async {
+              final Uri url = Uri.parse('https://wa.me/9647700000000');
+              if (!await launchUrl(url)) throw 'Could not launch $url';
+            },
           ),
-          const Divider(indent: 20, endIndent: 20),
-          
-          // تعديل خيار "عن تطبيق رصيد" للربط الخارجي مستقبلاً
+          const Divider(height: 1, indent: 60),
+          _buildSupportOption(
+            Icons.info_outline_rounded,
+            "عن رصيد",
+            "تعرف على خدماتنا وشروطنا",
+            () {},
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountActions(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
           _buildSettingsTile(
-            Icons.info_outline_rounded, 
-            'عن تطبيق رصيد', 
-            'شروط الاستخدام والعمولات',
+            Icons.person_add_alt_1_rounded,
+            "إنشاء حساب جديد",
+            "",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SignupScreen()),
+              );
+            },
+          ),
+          const Divider(height: 1, indent: 60),
+          _buildSettingsTile(
+            Icons.logout_rounded,
+            "تسجيل الخروج",
+            "الخروج من الحساب الحالي",
+            isLogout: true,
             onTap: () async {
-              // سطر مخصص للمستقبل: ضع رابط موقعك هنا
-              final Uri url = Uri.parse('https://your-website-link.com'); 
-              if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('عذراً، لا يمكن فتح الرابط حالياً'))
+              // --- منطق الإصلاح الجديد هنا ---
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
                 );
               }
             },
           ),
-          
-          // تفعيل زر تسجيل الخروج
-          _buildSettingsTile(
-            Icons.logout_rounded, 
-            'تسجيل الخروج', 
-            '', 
-            isLogout: true,
-            onTap: () => _showLogoutDialog(context),
-          ),
         ],
-      ),
-    );
-  }
-
-  // دالة لتأكيد تسجيل الخروج
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تسجيل الخروج'),
-        content: const Text('هل أنت متأكد أنك تريد تسجيل الخروج من حسابك؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          TextButton(
-            onPressed: () {
-              // هنا نقوم بالعودة لواجهة البداية وحذف كل الصفحات السابقة من الذاكرة
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-              // ملاحظة: تأكد من تعريف اسم المسار '/login' في ملف main.dart أو استبدله بـ MaterialPageRoute
-            },
-            child: const Text('خروج', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ... (نفس الدوال المساعدة: _buildAccountActions, _buildSupportSheet, _buildSettingsTile) ...
-
-  Widget _buildAccountActions(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 25),
-      child: Column(
-        children: [
-          _buildActionBtn(context, 'اضافة حساب', Icons.person_add_alt_1_rounded, Colors.blueGrey, () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const SignUpScreen()));
-          }),
-          const SizedBox(height: 10),
-          _buildActionBtn(context, 'تبديل الحساب', Icons.swap_horiz_rounded, emeraldColor, () {
-             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري الانتقال للحساب الآخر...')));
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionBtn(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 18, color: color),
-        label: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: color.withOpacity(0.5)),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        ),
-      ),
-    );
-  }
-
-  void _showSupportSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(25),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Center(child: Text('Support Center', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-            const SizedBox(height: 25),
-            _buildSupportOption(Icons.telegram, 'Telegram', 'Support via Telegram', () async {
-              final Uri url = Uri.parse('https://t.me/black4crow');
-              if (!await launchUrl(url, mode: LaunchMode.externalApplication)) throw 'Could not launch $url';
-            }),
-            _buildSupportOption(Icons.chat_bubble_outline_rounded, 'WhatsApp', 'Support via WhatsApp', () {}),
-            _buildSupportOption(Icons.email_outlined, 'Email', 'Support via Email', () {}),
-          ],
-        ),
       ),
     );
   }
@@ -223,7 +220,10 @@ class ProfileScreen extends StatelessWidget {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: emeraldColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(
+          color: emeraldColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
         child: Icon(icon, color: emeraldColor, size: 24),
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -242,8 +242,17 @@ class ProfileScreen extends StatelessWidget {
         ),
         child: Icon(icon, color: isLogout ? Colors.red : emeraldColor, size: 20),
       ),
-      title: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isLogout ? Colors.red : Colors.black)),
-      subtitle: subtitle.isNotEmpty ? Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)) : null,
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: isLogout ? Colors.red : Colors.black,
+        ),
+      ),
+      subtitle: subtitle.isNotEmpty
+          ? Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey))
+          : null,
       trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
       onTap: onTap,
     );
