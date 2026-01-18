@@ -1,41 +1,37 @@
 const functions = require("firebase-functions");
-const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 
-admin.initializeApp();
-
-// إعداد حساب الإيميل الذي سيرسل الرسائل (مثلاً Gmail)
+// إعداد الناقل مع Gmail
 const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: "payrassed@gmail.com", // ضع إيميل التطبيق هنا
-    pass: "ldbq coan zidk njkt",    // ضع "كلمة مرور التطبيقات" من جوجل هنا
-  },
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // استخدام SSL
+    auth: {
+        user: 'payrassed@gmail.com', // بريدك الإلكتروني
+        pass: 'ldbq coan zidk njkt'  // كود الـ App Password المكون من 16 حرفاً
+    },
+    tls: {
+        rejectUnauthorized: false // لتجنب مشاكل الشهادات في البيئة السحابية
+    }
 });
 
 exports.sendRecoveryCode = functions.https.onCall(async (data, context) => {
-  const email = data.email;
-  const code = data.code;
+    const email = data.email;
+    const code = data.code;
 
-  const mailOptions = {
-    from: "نظام رصيد الزمردي <your-email@gmail.com>",
-    to: email,
-    subject: "رمز استعادة كلمة المرور",
-    html: `
-      <div dir="rtl" style="font-family: Arial, sans-serif; text-align: center;">
-        <h2>مرحباً بك في نظام رصيد</h2>
-        <p>لقد طلبت رمز استعادة كلمة المرور الخاصة بك.</p>
-        <h1 style="color: #00796b;">${code}</h1>
-        <p>هذا الرمز صالح لفترة قصيرة، لا تشاركه مع أحد.</p>
-      </div>
-    `,
-  };
+    const mailOptions = {
+        from: '"رصيد الزمردي" <YOUR_EMAIL@gmail.com>',
+        to: email,
+        subject: 'رمز استعادة كلمة المرور',
+        text: `رمز التحقق الخاص بك هو: ${code}`,
+        html: `<b>رمز التحقق الخاص بك هو: ${code}</b>`
+    };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    return { success: true };
-  } catch (error) {
-    console.error("Error sending email:", error);
-    throw new functions.https.HttpsError("internal", "فشل إرسال الإيميل");
-  }
+    try {
+        await transporter.sendMail(mailOptions);
+        return { success: true };
+    } catch (error) {
+        console.error("Detailed Email Error:", error); // هذا سيطبع السبب الحقيقي في الـ Logs
+        throw new functions.https.HttpsError('internal', error.message);
+    }
 });
