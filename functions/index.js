@@ -22,7 +22,7 @@ exports.sendRecoveryCode = functions.https.onCall(async (request) => {
     console.log("Attempting to send email to:", email); // لمراقبة الإيميل في الـ Logs
 
     const mailOptions = {
-        from: '"رصيد الزمردي" <YOUR_EMAIL@gmail.com>',
+        from: '"RaseedPay - خدمة رصيدي" <YOUR_EMAIL@gmail.com>',
         to: email, // هنا كان الخطأ، الآن سيتم ملؤه بشكل صحيح
         subject: 'رمز استعادة كلمة المرور',
         text: `رمز التحقق الخاص بك هو: ${code}`,
