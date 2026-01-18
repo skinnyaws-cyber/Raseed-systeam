@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'reset_password_screen.dart'; // الواجهة التي سننشئها في الخطوة التالية
+import 'package:cloud_firestore/cloud_firestore.dart'; // مكتبة قاعدة البيانات
+import 'reset_password_screen.dart';
 
 class VerifyCodeScreen extends StatefulWidget {
   final String email;
@@ -14,30 +15,63 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
   final TextEditingController _codeController = TextEditingController();
   bool _isLoading = false;
 
-  void _verifyCode() {
+  // دالة التحقق من الرمز الحقيقي من Firestore
+  Future<void> _verifyCode() async {
+    String enteredCode = _codeController.text.trim();
+    if (enteredCode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("يرجى إدخال رمز التحقق")),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     
-    // محاكاة التحقق من الرمز
-    // في التطبيق الحقيقي، نقوم بمقارنة الرمز المدخل مع الرمز المرسل للإيميل
-    String enteredCode = _codeController.text.trim();
-    
-    Future.delayed(const Duration(seconds: 1), () {
-      if (enteredCode == "123456") { // الرمز الافتراضي للتجربة حالياً
-        if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ResetPasswordScreen(email: widget.email),
-            ),
-          );
+    try {
+      // 1. البحث عن سجل المستخدم باستخدام إيميل الاسترداد
+      var userQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('recovery_email', isEqualTo: widget.email)
+          .get();
+
+      if (userQuery.docs.isNotEmpty) {
+        var userData = userQuery.docs.first.data();
+        String? actualCode = userData['temp_otp']; // جلب الرمز المرسل فعلياً
+
+        // 2. مقارنة الرمز المدخل بالرمز الموجود في السيرفر
+        if (enteredCode == actualCode) {
+          if (mounted) {
+            // الانتقال لواجهة تعيين كلمة مرور جديدة
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ResetPasswordScreen(email: widget.email),
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("الرمز الذي أدخلته غير صحيح")),
+            );
+          }
         }
       } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("فشل العثور على بيانات المستخدم")),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("الرمز الذي أدخلته غير صحيح")),
+          SnackBar(content: Text("حدث خطأ أثناء التحقق: $e")),
         );
       }
+    } finally {
       if (mounted) setState(() => _isLoading = false);
-    });
+    }
   }
 
   @override
@@ -59,11 +93,10 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
             const SizedBox(height: 20),
             Icon(Icons.mark_email_read_outlined, size: 80, color: Colors.teal.shade700),
             const SizedBox(height: 30),
-            const Text('تحقق من الرمز', 
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const Text('تحقق من بريدك', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 15),
             Text(
-              'تم إرسال رمز التحقق إلى:\n${widget.email}',
+              'أدخل الرمز المكون من 6 أرقام والذي أرسلناه إلى\n${widget.email}',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.grey, height: 1.5),
             ),
@@ -74,13 +107,14 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
               controller: _codeController,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 10),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 8),
               inputFormatters: [
-                LengthLimitingTextInputFormatter(6), // تحديد الطول بـ 6 أرقام
+                LengthLimitingTextInputFormatter(6),
                 FilteringTextInputFormatter.digitsOnly,
               ],
               decoration: InputDecoration(
-                hintText: '------',
+                hintText: '000000',
+                hintStyle: TextStyle(color: Colors.grey.shade300),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -112,8 +146,9 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
             const SizedBox(height: 20),
             TextButton(
               onPressed: () {
+                // هنا يمكن إعادة استدعاء دالة الإرسال من الواجهة السابقة إذا أردت
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("تم إعادة إرسال الرمز للإيميل")),
+                  const SnackBar(content: Text("يرجى العودة للخطوة السابقة لإعادة إرسال الرمز")),
                 );
               },
               child: Text('إعادة إرسال الرمز', style: TextStyle(color: Colors.teal.shade700)),
