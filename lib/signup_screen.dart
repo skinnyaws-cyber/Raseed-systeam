@@ -158,7 +158,7 @@ class _SignUpScreenState extends State<SignUpScreen> { // [cite: 28]
               // حقل إيميل الاسترداد الجديد
               _buildTextField(
                 controller: _emailController,
-                label: 'إيميل الاسترداد (اختياري)', 
+                label: 'إيميل الاسترداد (مهم جدا)', 
                 icon: Icons.email_outlined
               ),
               const SizedBox(height: 20),
