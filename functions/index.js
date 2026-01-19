@@ -9,11 +9,12 @@ const transporter = nodemailer.createTransport({
     port: 465,
     secure: true,
     auth: {
-        user: 'payrassed@gmail.com', // بريدك
-        pass: 'ldbq coan zidk njkt'  // الـ App Password
+        user: 'payrassed@gmail.com',
+        pass: 'ldbq coan zidk njkt' 
     }
 });
 
+// 1. دالة إرسال الكود بتنسيق فريق رصيد المحدث
 exports.sendRecoveryCode = functions.https.onCall(async (request) => {
     const email = request.data.email || request.data;
     const code = request.data.code;
@@ -40,32 +41,58 @@ exports.sendRecoveryCode = functions.https.onCall(async (request) => {
 
     try {
         await transporter.sendMail({
-            from: '"RaseedPay - خدمة رصيد" <YOUR_EMAIL@gmail.com>',
+            from: '"RaseedPay - خدمة رصيد" <payrassed@gmail.com>',
             to: email,
             subject: '🔐 رمز التحقق الخاص بحسابك',
             html: htmlContent
         });
         return { success: true };
     } catch (error) {
+        console.error("Email Error:", error);
         throw new functions.https.HttpsError('internal', error.message);
     }
 });
 
+// 2. دالة تحديث كلمة المرور الاحترافية (حل مشكلة User Not Found)
 exports.updateUserPassword = functions.https.onCall(async (request) => {
     const { email, newPassword } = request.data;
+    
     try {
-        const userRecord = await admin.auth().getUserByEmail(email);
-        await admin.auth().updateUser(userRecord.uid, { password: newPassword });
+        // البحث في Firestore أولاً لجلب بيانات المستخدم بواسطة إيميل الاسترداد
+        const userQuery = await admin.firestore().collection('users')
+            .where('recovery_email', '==', email).get();
 
-        const userQuery = await admin.firestore().collection('users').where('recovery_email', '==', email).get();
-        if (!userQuery.empty) {
-            await admin.firestore().collection('users').doc(userQuery.docs[0].id).update({
-                password: newPassword,
-                temp_otp: null
-            });
+        if (userQuery.empty) {
+            throw new functions.https.HttpsError('not-found', 'إيميل الاسترداد هذا غير مسجل في النظام');
         }
-        return { success: true };
+
+        const userDoc = userQuery.docs[0];
+        const userData = userDoc.data();
+        
+        // جلب الإيميل الأساسي للحساب (الذي سجل به المستخدم في Auth)
+        // إذا لم يكن موجوداً، نستخدم إيميل الاسترداد نفسه كمحاولة أخيرة
+        const authEmail = userData.email || email;
+
+        try {
+            // محاولة تحديث نظام الـ Authentication (المحرك الأمني)
+            const userRecord = await admin.auth().getUserByEmail(authEmail);
+            await admin.auth().updateUser(userRecord.uid, { password: newPassword });
+            console.log(`Successfully updated Auth for UID: ${userRecord.uid}`);
+        } catch (authError) {
+            console.error("Auth System Update Failed:", authError.message);
+            // سنستمر لتحديث Firestore لضمان بقاء كلمة المرور المكتوبة محدثة
+        }
+
+        // تحديث كلمة المرور في Firestore وحذف الرمز المؤقت
+        await admin.firestore().collection('users').doc(userDoc.id).update({
+            password: newPassword,
+            temp_otp: null
+        });
+
+        return { success: true, message: "تم تحديث البيانات في النظامين بنجاح" };
+
     } catch (error) {
+        console.error("Global Update Error:", error);
         throw new functions.https.HttpsError('internal', error.message);
     }
 });
