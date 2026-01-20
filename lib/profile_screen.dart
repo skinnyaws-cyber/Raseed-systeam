@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'successful_operations_screen.dart'; // تأكد أن هذا الملف موجود في مشروعك
-import 'login_screen.dart'; // للانتقال عند تسجيل الخروج
+import 'successful_operations_screen.dart'; 
+import 'login_screen.dart'; 
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,7 +16,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final Color emeraldColor = const Color(0xFF50878C);
   final User? currentUser = FirebaseAuth.instance.currentUser;
 
-  // كنترولرز للنوافذ المنبثقة
   final TextEditingController _qiAccountController = TextEditingController();
   final TextEditingController _recoveryEmailController = TextEditingController();
 
@@ -27,7 +26,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  // دالة مساعدة لفتح الروابط
   Future<void> _launchLink(String url) async {
     final Uri uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
@@ -59,19 +57,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 30),
-                  // 1. الهيدر الحي
                   _buildProfileHeader(name, phone),
                   const SizedBox(height: 25),
-                  // 2. بطاقة الإجمالي الحية
                   _buildLiveTotalCard(),
                   const SizedBox(height: 25),
-                  // قسم الإعدادات
                   _buildSettingsSection(context, qiNumber, recoveryEmail),
                   const SizedBox(height: 20),
-                  // قسم الدعم
                   _buildSupportSection(),
                   const SizedBox(height: 20),
-                  // قسم الحساب
                   _buildAccountActions(context),
                   const SizedBox(height: 30),
                 ],
@@ -102,7 +95,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // بطاقة حساب الإجمالي من قاعدة البيانات
   Widget _buildLiveTotalCard() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -159,7 +151,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
       child: Column(
         children: [
-          // سجل العمليات الناجحة
           _buildSettingsTile(
             Icons.history_rounded, 
             'سجل العمليات الناجحة', 
@@ -168,7 +159,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const Divider(indent: 20, endIndent: 20),
           
-          // إدارة Qi Card
           _buildSettingsTile(
             Icons.credit_card_rounded, 
             'حساب Qi Card', 
@@ -177,7 +167,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const Divider(indent: 20, endIndent: 20),
 
-          // ايميل الاسترداد
           _buildSettingsTile(
             Icons.mark_email_read_rounded, 
             'ايميل الاسترداد', 
@@ -231,7 +220,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // --- النوافذ المنبثقة (Sheets) ---
+  // --- النوافذ المنبثقة ---
 
   void _showQiCardSheet(BuildContext context, String currentNumber) {
     _qiAccountController.text = currentNumber;
@@ -263,7 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 15),
 
-            // زر المساعدة الجديد (يفتح البطاقة المتحركة)
+            // زر المساعدة
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
@@ -279,7 +268,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Animated3DCard(), // البطاقة المتحركة
+                          const Animated3DCard(), // استدعاء البطاقة بالصورة المحلية
                           const SizedBox(height: 20),
                           ElevatedButton(
                             onPressed: () => Navigator.pop(ctx),
@@ -445,7 +434,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// --- ويدجيت البطاقة المتحركة 3D (توضيح الرقم) ---
+// --- ويدجيت البطاقة المتحركة (الصورة المحلية) ---
 class Animated3DCard extends StatefulWidget {
   const Animated3DCard({super.key});
 
@@ -484,9 +473,9 @@ class _Animated3DCardState extends State<Animated3DCard> with SingleTickerProvid
       builder: (context, child) {
         return Transform(
           transform: Matrix4.identity()
-            ..setEntry(3, 2, 0.001)
-            ..rotateY(_animation.value)
-            ..rotateX(_animation.value * 0.3),
+            ..setEntry(3, 2, 0.001) 
+            ..rotateY(_animation.value) 
+            ..rotateX(_animation.value * 0.3), 
           alignment: Alignment.center,
           child: child,
         );
@@ -496,80 +485,21 @@ class _Animated3DCardState extends State<Animated3DCard> with SingleTickerProvid
         width: 320,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
-          gradient: const LinearGradient(
-            colors: [Color(0xFFF9A825), Color(0xFFFFEE58)], // ألوان ذهبية
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
           boxShadow: [
             BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 15))
           ],
         ),
-        child: Stack(
-          children: [
-            // الخلفية المزخرفة الخفيفة
-            Positioned(right: -20, top: -20, child: Icon(Icons.credit_card, size: 200, color: Colors.white.withOpacity(0.1))),
-            
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                       const Text("Qi Card", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18, fontStyle: FontStyle.italic)),
-                       Icon(Icons.nfc, color: Colors.black.withOpacity(0.6)),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
-                  // الشريحة
-                  Container(
-                    width: 45, height: 35,
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade200, 
-                      borderRadius: BorderRadius.circular(6), 
-                      border: Border.all(color: Colors.amber.shade100),
-                      gradient: LinearGradient(colors: [Colors.amber.shade300, Colors.amber.shade100])
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  
-                  // اسم حامل البطاقة (وهمي للتوضيح)
-                  const Text("AHMED MOHAMMED", style: TextStyle(color: Colors.black54, fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 5),
-
-                  // الرقم الطويل (مموه)
-                  const Text("XXXX  XXXX  XXXX  XXXX", style: TextStyle(color: Colors.black38, fontSize: 20, letterSpacing: 2, fontFamily: 'Courier')),
-                  
-                  const Spacer(),
-                  
-                  // الرقم المطلوب (مظلل بوضوح)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.5),
-                      border: Border.all(color: Colors.red, width: 2), 
-                      borderRadius: BorderRadius.circular(8)
-                    ),
-                    child: const Text("1029384756", style: TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 3)),
-                  ),
-                ],
-              ),
+        // === هنا تم وضع الصورة المحلية ===
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(15),
+          child: Image.asset(
+            'assets/fonts/images/raseed-card.png', // المسار الذي طلبته
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: Colors.grey.shade300,
+              child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
             ),
-            // السهم والمؤشر
-            Positioned(
-              bottom: 25,
-              right: 20,
-              child: Row(
-                children: [
-                  const Text("الرقم الصحيح", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-                  const SizedBox(width: 5),
-                  Icon(Icons.arrow_back, color: Colors.red.shade900),
-                ],
-              ),
-            )
-          ],
+          ),
         ),
       ),
     );
