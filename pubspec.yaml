@@ -20,6 +20,10 @@ dependencies:
   firebase_auth: any
   cloud_firestore: any
   cloud_functions: ^5.1.0
+  mobile_scanner: ^3.5.5
+  permission_handler: ^10.4.0
+  flutter_phone_direct_caller: ^2.1.1
+  sim_data: ^0.0.2
 
 dev_dependencies:
   flutter_test:
