@@ -24,6 +24,7 @@ dependencies:
   permission_handler: ^10.4.0
   flutter_phone_direct_caller: ^2.1.1
   sim_data: ^0.0.2
+  google_mobile_ads: ^5.1.0
 
 dev_dependencies:
   flutter_test:
