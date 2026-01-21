@@ -29,15 +29,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // --- متغيرات النظام الحية ---
   final User? currentUser = FirebaseAuth.instance.currentUser;
   int userPoints = 0; // سيتم تحديثها من Firebase
+  String? _hiddenQiNumber; // لتخزين رقم البطاقة بالخفاء
   
   String? _transferType; 
   String? _telecomProvider;
   String? _receivingCard;
-  
+
   // الكنترولرز
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _codeController = TextEditingController();
-  final TextEditingController _senderPhoneController = TextEditingController(); // كنترولر رقم المستخدم
+  final TextEditingController _senderPhoneController = TextEditingController();
 
   // متغيرات الحسابات والتحقق
   int _receiveAmount = 0;
@@ -45,6 +46,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isProcessing = false;
   bool _isInvalidAmount = false;
   
+  // متغيرات الحد اليومي
+  int _dailyLimit = 50000; // الحد الأقصى اليومي الافتراضي
+  int _todayTransferredAmount = 0; // مجموع تحويلات اليوم
+  bool _isOverDailyLimit = false; // حالة تجاوز الحد
+
   // متغيرات التحقق من الشريحة
   bool _isCheckingSim = false;
   bool _isSimMatch = true; // نفترض الصحة مبدئياً حتى يكتب المستخدم
@@ -57,7 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // جلب رقم الهاتف المسجل تلقائياً عند البدء وضعه في الحقل
+    // جلب رقم الهاتف المسجل تلقائياً ورقم الكي كارد المخفي
     _fetchUserData();
   }
 
@@ -68,8 +74,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() {
           _senderPhoneController.text = doc.data()?['phone_number'] ?? "";
           userPoints = doc.data()?['points'] ?? 0;
+          _hiddenQiNumber = doc.data()?['qi_number']; // جلب الرقم بالخفاء
         });
       }
+    }
+  }
+
+  // حساب مجموع تحويلات اليوم الحالي
+  Future<void> _calculateTodayTotal() async {
+    if (currentUser == null) return;
+    
+    // تحديد بداية اليوم الحالي
+    DateTime now = DateTime.now();
+    DateTime startOfDay = DateTime(now.year, now.month, now.day);
+    
+    try {
+      // جلب الطلبات الناجحة أو قيد الانتظار لهذا اليوم فقط
+      var query = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('userId', isEqualTo: currentUser!.uid)
+          .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .get();
+
+      int total = 0;
+      for (var doc in query.docs) {
+        // نستثني العمليات المرفوضة
+        if (doc.data()['status'] != 'failed') {
+          total += (doc.data()['amount'] as num).toInt();
+        }
+      }
+      setState(() {
+        _todayTransferredAmount = total;
+      });
+    } catch (e) {
+      debugPrint("Error calculating today total: $e");
     }
   }
 
@@ -88,8 +126,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() { _isCheckingSim = true; _simErrorMsg = ""; });
 
     // محاكاة التحقق (لأن الوصول لرقم الشريحة مقيد في أندرويد الحديث)
-    // هنا نتحقق إذا كان الرقم المدخل يبدأ بمقدمة الشبكة المختارة
-    await Future.delayed(const Duration(milliseconds: 500)); // تأخير بسيط للواقعية
+    await Future.delayed(const Duration(milliseconds: 500));
     
     bool isValid = true;
     String msg = "";
@@ -152,10 +189,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   String _generateUSSDCode(String provider, String amount) {
-    // إزالة الفواصل من المبلغ
     String cleanAmount = amount.replaceAll(',', '');
     if (provider == "Zain") {
-      return "*211*$_ourZainNumber*$cleanAmount#"; 
+      return "*211*$_ourZainNumber*$cleanAmount#";
     } else { // Asiacell
       return "*222*$cleanAmount*$_ourAsiaNumber#";
     }
@@ -189,7 +225,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _processOrder(StateSetter setModalState) async {
     // 1. التحقق من المدخلات
     if (_amountController.text.isEmpty || _transferType == null || _telecomProvider == null || _senderPhoneController.text.isEmpty) {
-       return; // الزر أصلاً معطل لكن زيادة تأكيد
+       return;
+    }
+
+    if (_isOverDailyLimit) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تجاوزت سقف التحويل اليومي")));
+      return;
     }
 
     // 2. التحقق من الشريحة (أندرويد + تحويل مباشر)
@@ -199,7 +240,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     setModalState(() => _isProcessing = true);
-
     try {
       // جلب الاسم الحالي
       var userSnapshot = await FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).get();
@@ -209,11 +249,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       await FirebaseFirestore.instance.collection('orders').add({
         'userId': currentUser?.uid,
         'userFullName': userName,
-        'userPhone': _senderPhoneController.text, // الرقم الذي كتبه المستخدم
+        'userPhone': _senderPhoneController.text,
         'amount': int.tryParse(_amountController.text.replaceAll(',', '')) ?? 0,
         'transferType': _transferType,
         'telecomProvider': _telecomProvider,
-        'receivingCard': _receivingCard,
+        // هنا نحدد نوع البطاقة، وإذا كانت كي كارد نرسل الرقم المخفي في حقل الهدف
+        'receivingCard': _receivingCard, 
+        'targetAccount': _receivingCard == 'QiCard' ? (_hiddenQiNumber ?? 'No Qi Number') : 'ZainCash', // الحقل السري
         'targetInfo': _transferType == 'direct' ? 'Direct Transfer' : _codeController.text,
         'commission': _commission,
         'status': 'pending',
@@ -230,7 +272,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _showIOSTutorialDialog(ussd);
         } else {
           await _executeCall(ussd);
-          _showDoubleCheckDialog(); // إظهار رسالة النجاح
+          _showDoubleCheckDialog();
         }
       } else {
         _showDoubleCheckDialog();
@@ -242,14 +284,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  // --- تحديث الحسابات والتحقق من السقف اليومي ---
   void _calculateAmount(String value) {
     if (value.isEmpty) { 
-      setState(() { _isInvalidAmount = false; _receiveAmount = 0; });
+      setState(() { 
+        _isInvalidAmount = false; 
+        _isOverDailyLimit = false;
+        _receiveAmount = 0; 
+      });
       return; 
     }
-    int amount = int.tryParse(value.replaceAll(',', '')) ?? 0; // إزالة الفواصل للحساب
+
+    int amount = int.tryParse(value.replaceAll(',', '')) ?? 0;
+
     setState(() {
+      // التحقق من صحة الرقم (آلاف)
       _isInvalidAmount = (amount >= 1000 && amount % 1000 != 0);
+      
+      // التحقق من السقف اليومي (المجموع الحالي + المبلغ المدخل)
+      if ((_todayTransferredAmount + amount) > _dailyLimit) {
+        _isOverDailyLimit = true;
+      } else {
+        _isOverDailyLimit = false;
+      }
+
+      // حساب العمولة
       if (amount < 2000) { 
         _commission = 0; _receiveAmount = 0; 
       } else {
@@ -263,6 +322,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _receiveAmount = amount - _commission;
       }
     });
+  }
+  
+  void _showDoubleCheckDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(25.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(color: Colors.green.shade50, shape: BoxShape.circle),
+                child: const Icon(Icons.check_rounded, color: Colors.green, size: 40),
+              ),
+              const SizedBox(height: 20),
+              const Text("تم إرسال الطلب!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              const Text("جاري معالجة طلبك، سيصلك إشعار فور اكتمال التحويل.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+              const SizedBox(height: 25),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: emeraldColor, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  onPressed: () {
+                    Navigator.pop(context); // إغلاق الدايلوج
+                    Navigator.pop(context); // إغلاق الـ Sheet
+                    _amountController.clear();
+                    _codeController.clear();
+                  },
+                  child: const Text("حسناً", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -401,7 +501,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: IconButton(
                             icon: const Icon(Icons.notifications_none_rounded, color: Colors.black87), 
                             onPressed: () {
-                              Navigator.push(
+                               Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const NotificationsScreen()),
                               );
@@ -489,10 +589,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _showConversionSheet(String provider, Color color) {
-    // تحديث المزود تلقائياً حسب البطاقة المختارة
     setState(() {
       _telecomProvider = (provider.contains("Zain") || provider.contains("زين")) ? "Zain" : "Asiacell";
     });
+    
+    // حساب مجموع تحويلات اليوم قبل فتح النافذة لضمان الدقة
+    _calculateTodayTotal();
 
     showModalBottomSheet(
       context: context,
@@ -512,24 +614,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     IconButton(icon: const Icon(Icons.arrow_forward_ios_rounded, size: 22), onPressed: () => Navigator.pop(context)),
                     Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
-                    const SizedBox(width: 40), 
+                    const SizedBox(width: 40),
                   ],
                 ),
                 Text('تحويل رصيد $provider', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 25),
+                
                 _buildFieldLabel('اختر نوع التحويل:'),
                 DropdownButtonFormField<String>(
                   decoration: _inputDecoration('نوع التحويل'),
                   items: const [DropdownMenuItem(value: 'direct', child: Text('تحويل رصيد مباشر')), DropdownMenuItem(value: 'code', child: Text('ارسال كود السري / QR'))],
                   onChanged: (val) => setModalState(() => _transferType = val),
                 ),
+                
                 if (_transferType != null) ...[
                   const SizedBox(height: 15),
                   if (_transferType == 'code') ...[
                     _buildFieldLabel('الكود السري للكرت:'),
-                    // --- إضافة الماسح الضوئي للكود ---
                     TextField(
-                      controller: _codeController, 
+                      controller: _codeController,
                       decoration: _inputDecoration('ادخل الكود').copyWith(
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.blue),
@@ -539,60 +642,82 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 15),
                   ],
-                  // تم إزالة اختيار الشركة لأنه يتم تمريره من الواجهة الرئيسية
                 ],
+
                 if (_telecomProvider != null) ...[
                   const SizedBox(height: 15),
                   _buildFieldLabel('بطاقة الاستلام:'),
                   DropdownButtonFormField<String>(
                     decoration: _inputDecoration('اختر البطاقة'),
-                    items: const [DropdownMenuItem(value: 'ZainCash', child: Text('ZainCash')), DropdownMenuItem(value: 'QiCard', child: Text('Qi card'))],
+                    // === تعديل القائمة: حذف زين كاش وإضافة أيقونة كي كارد ===
+                    items: [
+                      DropdownMenuItem(
+                        value: 'QiCard', 
+                        child: Row(
+                          children: [
+                            Image.asset('assets/fonts/images/qi_card_icon.png', width: 24, height: 24),
+                            const SizedBox(width: 10),
+                            const Text('Qi card'),
+                          ],
+                        )
+                      )
+                    ],
                     onChanged: (val) => setModalState(() => _receivingCard = val),
                   ),
                 ],
+
                 if (_receivingCard != null) ...[
                   const SizedBox(height: 15),
                   _buildFieldLabel('رقم الهاتف المسجل:'),
-                  // --- تحويل الحقل ليكون قابلاً للكتابة والتحقق ---
                   TextFormField(
                     controller: _senderPhoneController,
                     keyboardType: TextInputType.phone,
                     decoration: _inputDecoration('أدخل رقم شريحتك').copyWith(
                       fillColor: Colors.blueGrey.shade50,
-                      suffixIcon: _isCheckingSim 
-                        ? const Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2)) 
-                        : (_senderPhoneController.text.isNotEmpty 
-                            ? Icon(_isSimMatch ? Icons.check_circle : Icons.error, color: _isSimMatch ? Colors.green : Colors.red, size: 18) 
-                            : const Icon(Icons.phone_android, size: 18)),
+                      suffixIcon: _isCheckingSim ? 
+                        const Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2)) : 
+                        (_senderPhoneController.text.isNotEmpty ? Icon(_isSimMatch ? Icons.check_circle : Icons.error, color: _isSimMatch ? Colors.green : Colors.red, size: 18) : const Icon(Icons.phone_android, size: 18)),
                       helperText: (!_isSimMatch && _simErrorMsg.isNotEmpty) ? _simErrorMsg : null,
                       helperStyle: const TextStyle(color: Colors.red),
                     ),
                     onChanged: (val) {
-                       if (!kIsWeb && Platform.isAndroid && val.length > 9) {
-                         _validateSimCard(val);
-                         setModalState(() {});
-                       }
+                      if (!kIsWeb && Platform.isAndroid && val.length > 9) {
+                        _validateSimCard(val);
+                        setModalState(() {});
+                      }
                     },
                   ),
+
                   const SizedBox(height: 15),
                   _buildFieldLabel('قيمة الرصيد (بالآلاف):'),
                   TextField(
                     controller: _amountController,
-                    decoration: _inputDecoration('مثلاً 5000').copyWith(errorText: _isInvalidAmount ? 'يرجى إدخال آلاف كاملة' : null),
+                    // === إضافة رسالة الخطأ عند تجاوز السقف ===
+                    decoration: _inputDecoration('مثلاً 5000').copyWith(
+                      errorText: _isOverDailyLimit 
+                          ? 'هذه القيمة اكثر من اعلى من سقف التحويل اليومي' 
+                          : (_isInvalidAmount ? 'يرجى إدخال آلاف كاملة' : null),
+                      errorStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)
+                    ),
                     keyboardType: TextInputType.number,
-                    onChanged: (val) { _calculateAmount(val); setModalState(() {}); },
+                    onChanged: (val) {
+                       _calculateAmount(val);
+                       setModalState(() {});
+                    },
                   ),
-                  if (_amountController.text.isNotEmpty && !_isInvalidAmount)
+
+                  if (_amountController.text.isNotEmpty && !_isInvalidAmount && !_isOverDailyLimit)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10), 
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('العمولة: $_commission د.ع', style: TextStyle(color: _commission == 0 ? Colors.green : Colors.red, fontWeight: FontWeight.bold)), 
+                          Text('العمولة: $_commission د.ع', style: TextStyle(color: _commission == 0 ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
                           Text('الصافي: $_receiveAmount د.ع', style: const TextStyle(fontWeight: FontWeight.bold))
                         ]
                       )
                     ),
+
                   const SizedBox(height: 25),
                   _buildRasedPayButton(color, setModalState),
                 ],
@@ -606,25 +731,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildRasedPayButton(Color color, StateSetter setModalState) {
-    bool canConfirm = !_isInvalidAmount && _amountController.text.isNotEmpty && _senderPhoneController.text.isNotEmpty && _isSimMatch;
+    // === التحقق من شرط السقف اليومي قبل تفعيل الزر ===
+    bool canConfirm = !_isInvalidAmount && !_isOverDailyLimit && _amountController.text.isNotEmpty && _senderPhoneController.text.isNotEmpty && _isSimMatch;
+
     return Opacity(
       opacity: canConfirm ? 1.0 : 0.4,
       child: SizedBox(
-        width: double.infinity, height: 60,
+        width: double.infinity,
+        height: 60,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: neonGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), elevation: 0),
-          // --- ربط الزر بدالة المعالجة الحقيقية ---
           onPressed: canConfirm ? () => _processOrder(setModalState) : null,
-          child: _isProcessing ? const RasedPayAnimation() : const Text('تأكيد الطلب', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+          child: _isProcessing ? const CircularProgressIndicator(color: Colors.black) : const Text('تأكيد الطلب', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
         ),
       ),
     );
   }
 
   Widget _buildFieldLabel(String label) => Align(alignment: Alignment.centerRight, child: Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))));
-  InputDecoration _inputDecoration(String hint) => InputDecoration(hintText: hint, filled: true, fillColor: Colors.grey.shade100, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12));
   
-  Widget _buildRecentTransactionsHeader() { return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('آخر التحويلات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), TextButton(onPressed: () {}, child: Text('الكل', style: TextStyle(color: emeraldColor)))]); }
+  InputDecoration _inputDecoration(String hint) => InputDecoration(hintText: hint, filled: true, fillColor: Colors.grey.shade100, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12));
+
+  Widget _buildRecentTransactionsHeader() {
+    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('آخر التحويلات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), TextButton(onPressed: () {}, child: Text('الكل', style: TextStyle(color: emeraldColor)))]);
+  }
 
   Widget _buildEmptyState() {
     return Center(
@@ -645,83 +775,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildBottomNav() { return BottomNavigationBar(currentIndex: _selectedIndex, onTap: (i) => setState(() => _selectedIndex = i), type: BottomNavigationBarType.fixed, selectedItemColor: emeraldColor, items: const [BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'الرئيسية'), BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'الطلبات'), BottomNavigationBarItem(icon: Icon(Icons.local_offer), label: 'العروض'), BottomNavigationBarItem(icon: Icon(Icons.person), label: 'الملف')]); }
-
-  void _showDoubleCheckDialog() {
-    showDialog(context: context, builder: (context) => AlertDialog(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), title: const Text('تم بنجاح'), content: const Text('تم استلام طلبك بنجاح وسيتم معالجته قريباً.'), actions: [
-      ElevatedButton(onPressed: () { 
-        if (userPoints >= 50) {
-          // يمكن تصفير النقاط في Firebase هنا إذا لزم الأمر
-        }
-        Navigator.pop(context); 
-        Navigator.pop(context); 
-      }, child: const Text('موافق'))
-    ]));
-  }
-}
-
-class RasedPayAnimation extends StatefulWidget {
-  const RasedPayAnimation({super.key});
-  @override
-  State<RasedPayAnimation> createState() => _RasedPayAnimationState();
-}
-
-class _RasedPayAnimationState extends State<RasedPayAnimation> with TickerProviderStateMixin {
-  late AnimationController _dotsCtrl;
-  late AnimationController _slideCtrl;
-  late AnimationController _rotateCtrl;
-  bool _showCheck = false;
-  bool _hideText = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _dotsCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 400))..repeat(reverse: true);
-    _slideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _rotateCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => _hideText = true);
-        _slideCtrl.forward().then((_) {
-          _rotateCtrl.repeat();
-          Future.delayed(const Duration(seconds: 1), () {
-            if (mounted) {
-              _rotateCtrl.stop();
-              setState(() => _showCheck = true);
-            }
-          });
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() { _dotsCtrl.dispose(); _slideCtrl.dispose(); _rotateCtrl.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        if (!_hideText)
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            const Text("RasedPay", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
-            AnimatedBuilder(animation: _dotsCtrl, builder: (context, child) => Text("...", style: TextStyle(color: Colors.black, fontSize: 18, letterSpacing: 2 * _dotsCtrl.value))),
-          ]),
-        AnimatedBuilder(
-          animation: _slideCtrl,
-          builder: (context, child) => Transform.translate(
-            offset: Offset(150 * (1 - _slideCtrl.value), 0),
-            child: Opacity(
-              opacity: _hideText ? 1.0 : 0.0,
-              child: _showCheck 
-                ? Container(width: 35, height: 35, decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle), child: const Icon(Icons.check, color: Color(0xFFCCFF00), size: 20))
-                : RotationTransition(turns: _rotateCtrl, child: const Icon(Icons.credit_card, color: Colors.black, size: 30)),
-            ),
-          ),
-        ),
-      ],
+  Widget _buildBottomNav() {
+    return BottomNavigationBar(
+      currentIndex: _selectedIndex, 
+      onTap: (i) => setState(() => _selectedIndex = i), 
+      type: BottomNavigationBarType.fixed, 
+      selectedItemColor: emeraldColor, 
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'الرئيسية'), 
+        BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'الطلبات'), 
+        BottomNavigationBarItem(icon: Icon(Icons.local_offer), label: 'العروض'), 
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'حسابي')
+      ]
     );
   }
 }
