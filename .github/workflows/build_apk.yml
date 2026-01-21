@@ -41,7 +41,7 @@ jobs:
 
     # 6. رفع الملف الناتج لكي تتمكن من تحميله
     - name: Upload APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: raseed-app-debug
         path: build/app/outputs/flutter-apk/app-debug.apk
