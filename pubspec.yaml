@@ -38,6 +38,7 @@ flutter:
     - assets/fonts/images/asiacell_logo.png
     - assets/fonts/images/zain_logo.png
     - assets/fonts/images/raseed-card.png
+    - assets/fonts/images/qi_card_icon.png
 
   # هنا نقوم بتعريف الخط الذي اخترته "IBM Plex Sans Arabic"
   fonts:
