@@ -1,9 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET"/>
-
-    <application
-        android:label="Raseed"
+    <uses-permission android:name="android.permission.CALL_PHONE" /> <uses-permission android:name="android.permission.CAMERA"/>     <application
+        android:label="raseed_systeam"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         
@@ -34,5 +33,6 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-7534144177667566~9914687808"/>
-            </application>
+            
+    </application>
 </manifest>
