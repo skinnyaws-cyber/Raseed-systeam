@@ -29,6 +29,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+    flutter_launcher_icons: ^0.13.1
   flutter_lints: ^3.0.0
 
 flutter:
@@ -39,6 +40,7 @@ flutter:
     - assets/fonts/images/zain_logo.png
     - assets/fonts/images/raseed-card.png
     - assets/fonts/images/qi_card_icon.png
+    
 
   # هنا نقوم بتعريف الخط الذي اخترته "IBM Plex Sans Arabic"
   fonts:
@@ -46,3 +48,10 @@ flutter:
       fonts:
         - asset: assets/fonts/IBMPlexSansArabic-SemiBold.ttf
           weight: 600
+
+          flutter_icons:
+  android: true
+  ios: true
+  - assets/fonts/images/icon.png
+  image_path: "assets/icon.png"
+  min_sdk_android: 21
