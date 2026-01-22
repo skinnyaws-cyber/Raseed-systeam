@@ -9,22 +9,29 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // 2. محاولة تهيئة فايربيس داخل بلوك try-catch
-    // هذا هو السطر الذي نشك أنه يسبب التعليق
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    // === التعديل الجديد (الحل لمشكلة Duplicate App) ===
+    // نتحقق أولاً: هل فايربيس تم تشغيله بالفعل؟
+    if (Firebase.apps.isEmpty) {
+      // إذا لم يكن يعمل، قم بتهيئته
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } else {
+      // إذا كان يعمل مسبقاً، تخطى هذه الخطوة (وهذا ما سيمنع الخطأ)
+      debugPrint('Firebase was already initialized! Skipping re-initialization.');
+    }
+    // =================================================
 
-    // 3. إذا نجح الاتصال، شغل التطبيق الطبيعي
+    // 2. تشغيل تطبيقك الأصلي
     runApp(const RaseedApp());
     
   } catch (e, stackTrace) {
-    // 4. إذا حدث خطأ، شغل شاشة الخطأ الحمراء بدلاً من الشاشة البيضاء
+    // 3. في حال حدث أي خطأ آخر، اعرض شاشة الخطأ بدلاً من الشاشة البيضاء
     runApp(ErrorApp(errorMessage: e.toString(), stackTrace: stackTrace.toString()));
   }
 }
 
-// === تطبيقك الأصلي (لم أغير فيه شيئاً) ===
+// === تطبيقك الأصلي (كما هو تماماً) ===
 class RaseedApp extends StatelessWidget {
   const RaseedApp({super.key});
 
@@ -47,7 +54,7 @@ class RaseedApp extends StatelessWidget {
   }
 }
 
-// === شاشة كشف الأخطاء (الجديدة) ===
+// === شاشة كشف الأخطاء (للاحتياط) ===
 class ErrorApp extends StatelessWidget {
   final String errorMessage;
   final String stackTrace;
@@ -58,7 +65,7 @@ class ErrorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        backgroundColor: Colors.red[50], // لون خلفية فاتح
+        backgroundColor: Colors.red[50],
         appBar: AppBar(
           title: const Text("Startup Error ⚠️"), 
           backgroundColor: Colors.red,
@@ -80,13 +87,13 @@ class ErrorApp extends StatelessWidget {
                   border: Border.all(color: Colors.red),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: SelectableText( // يسمح لك بنسخ النص إذا أردت
+                child: SelectableText(
                   errorMessage,
                   style: const TextStyle(fontSize: 16, color: Colors.black87),
                 ),
               ),
               const Divider(height: 30),
-              const Text("التفاصيل التقنية (Stack Trace):", style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text("التفاصيل التقنية:", style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 5),
               SelectableText(
                 stackTrace, 
