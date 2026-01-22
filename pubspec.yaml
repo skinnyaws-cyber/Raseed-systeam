@@ -11,8 +11,8 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
-  google_fonts: ^6.1.0 # لدعم الخطوط العصرية
-  intl: ^0.18.1 # لدعم العملة واللغة العربية
+  google_fonts: ^6.1.0 
+  intl: ^0.18.1 
   http: ^1.1.0 
   url_launcher: ^6.2.5
   flutter_jailbreak_detection: ^1.1.0
@@ -29,7 +29,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-    flutter_launcher_icons: ^0.13.1
+  # تم تصحيح المسافة هنا (يجب أن تكون على نفس مستوى flutter_test)
+  flutter_launcher_icons: ^0.13.1
   flutter_lints: ^3.0.0
 
 flutter:
@@ -40,16 +41,17 @@ flutter:
     - assets/fonts/images/zain_logo.png
     - assets/fonts/images/raseed-card.png
     - assets/fonts/images/qi_card_icon.png
-    
 
-  # هنا نقوم بتعريف الخط الذي اخترته "IBM Plex Sans Arabic"
   fonts:
     - family: IBMPlexSansArabic
       fonts:
         - asset: assets/fonts/IBMPlexSansArabic-SemiBold.ttf
           weight: 600
 
-          flutter_icons:
+# ==========================================
+# إعدادات الأيقونة (تم تصحيح المسافة لتكون في بداية السطر)
+# ==========================================
+flutter_icons:
   android: true
   ios: true
   image_path: "assets/icon.png"
