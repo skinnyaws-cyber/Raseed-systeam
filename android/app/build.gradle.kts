@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.raseed_systeam"
+    namespace = "com.raseed.raseedApp"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
