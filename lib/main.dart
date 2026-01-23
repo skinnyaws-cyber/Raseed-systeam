@@ -5,16 +5,23 @@ import 'onboarding_screen.dart';
 import 'signup_screen.dart';
 
 void main() async {
-  // 1. تهيئة الودجتس
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. تشغيل فايربيس (الآن هذا هو المكان الوحيد الذي يشغله)
-  // لن يحدث تضارب Duplicate لأننا عطلنا التلقائي
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    // نحاول تهيئة فايربيس
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // إذا كان الخطأ بسبب أن النظام قام بالتهيئة مسبقاً، نتجاهله ونكمل
+    if (e.toString().contains('duplicate') || e.toString().contains('already exists')) {
+      debugPrint("Firebase initialized by Native side, proceeding...");
+    } else {
+      // إذا كان خطأ آخر، اطبعه (أو اظهر شاشة الخطأ إذا أردت)
+      debugPrint("Error initializing Firebase: $e");
+    }
+  }
 
-  // 3. تشغيل التطبيق
   runApp(const RaseedApp());
 }
 
