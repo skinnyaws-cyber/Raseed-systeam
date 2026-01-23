@@ -1,4 +1,4 @@
-package com.example.raseed_systeam
+package com.raseed.raseedApp
 
 import io.flutter.embedding.android.FlutterActivity
 
