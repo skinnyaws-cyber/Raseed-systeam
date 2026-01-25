@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // إضافة مكتبة المصادقة
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
+
+// استيراد الشاشات
+import 'splash_screen.dart'; // تمت الإضافة
 import 'onboarding_screen.dart';
 import 'signup_screen.dart';
-import 'dashboard_screen.dart'; // تأكد من استيراد الشاشة الرئيسية
+import 'dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   try {
     // محاولة تهيئة فايربيس
     await Firebase.initializeApp(
@@ -31,36 +33,17 @@ class RaseedApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: const Color(0xFF50C878),
+        // تم التأكد من الاسم بناءً على ملف pubspec الخاص بك
         fontFamily: 'IBMPlexSansArabic',
         useMaterial3: true,
       ),
-      // نلغي initialRoute ونستخدم home بدلاً منها لتطبيق المنطق
-      home: const AuthWrapper(), 
+      // التعديل: البداية من الشاشة الافتتاحية بدلاً من AuthWrapper
+      home: const SplashScreen(),
+      
       routes: {
         '/onboarding': (context) => const OnboardingScreen(),
         '/login': (context) => const SignUpScreen(),
         '/dashboard': (context) => const DashboardScreen(),
-      },
-    );
-  }
-}
-
-// === كلاس جديد وظيفته توجيه المستخدم ===
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // التحقق من حالة المستخدم الحالي
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        // إذا كان هناك بيانات للمستخدم (يعني مسجل دخول)
-        if (snapshot.hasData && snapshot.data != null) {
-          return const DashboardScreen(); // اذهب للرئيسية فوراً
-        }
-        // غير مسجل دخول؟ اذهب لشاشة البداية
-        return const OnboardingScreen();
       },
     );
   }
