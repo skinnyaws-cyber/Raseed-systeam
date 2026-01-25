@@ -66,5 +66,5 @@ flutter_icons:
     image: assets/fonts/images/logo.png
     color: "#50878C"
   
-  android: true
-  ios: true
+  android: assets/fonts/images/logo.png
+  ios: assets/fonts/images/logo.png
