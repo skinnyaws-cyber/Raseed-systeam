@@ -152,7 +152,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             child: Text(
               text[i],
               style: TextStyle(
-                fontFamily: 'IBMPlexSans', // الخط المستخدم في تطبيقك
+                fontFamily: 'IBMPlexSansArabic', // الخط المستخدم في تطبيقك
                 fontSize: 34,
                 fontWeight: FontWeight.w600, // وزن شبه عريض للفخامة
                 color: color,
