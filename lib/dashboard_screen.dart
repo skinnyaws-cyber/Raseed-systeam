@@ -83,11 +83,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // حساب مجموع تحويلات اليوم الحالي
   Future<void> _calculateTodayTotal() async {
     if (currentUser == null) return;
-    
     // تحديد بداية اليوم الحالي
     DateTime now = DateTime.now();
     DateTime startOfDay = DateTime(now.year, now.month, now.day);
-    
+
     try {
       // جلب الطلبات الناجحة أو قيد الانتظار لهذا اليوم فقط
       var query = await FirebaseFirestore.instance
@@ -127,7 +126,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // محاكاة التحقق (لأن الوصول لرقم الشريحة مقيد في أندرويد الحديث)
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
     bool isValid = true;
     String msg = "";
 
@@ -296,7 +295,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     int amount = int.tryParse(value.replaceAll(',', '')) ?? 0;
-
     setState(() {
       // التحقق من صحة الرقم (آلاف)
       _isInvalidAmount = (amount >= 1000 && amount % 1000 != 0);
@@ -501,7 +499,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: IconButton(
                             icon: const Icon(Icons.notifications_none_rounded, color: Colors.black87), 
                             onPressed: () {
-                               Navigator.push(
+                              Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const NotificationsScreen()),
                               );
@@ -592,10 +590,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       _telecomProvider = (provider.contains("Zain") || provider.contains("زين")) ? "Zain" : "Asiacell";
     });
-    
     // حساب مجموع تحويلات اليوم قبل فتح النافذة لضمان الدقة
     _calculateTodayTotal();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -648,8 +644,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 15),
                   _buildFieldLabel('بطاقة الاستلام:'),
                   DropdownButtonFormField<String>(
-                    decoration: _inputDecoration('اختر البطاقة'),
-                    // === تعديل القائمة: حذف زين كاش وإضافة أيقونة كي كارد ===
+                    decoration: _inputDecoration('اختر البطاقة').copyWith(
+                      // === التعديل المطلوب: إظهار الخطأ إذا كان الرقم غير موجود ===
+                      errorText: (_receivingCard == 'QiCard' && (_hiddenQiNumber == null || _hiddenQiNumber!.isEmpty))
+                          ? "يرجى إضافة رقم البطاقة من الملف الشخصي"
+                          : null,
+                    ),
                     items: [
                       DropdownMenuItem(
                         value: 'QiCard', 
@@ -674,8 +674,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     keyboardType: TextInputType.phone,
                     decoration: _inputDecoration('أدخل رقم شريحتك').copyWith(
                       fillColor: Colors.blueGrey.shade50,
-                      suffixIcon: _isCheckingSim ? 
-                        const Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2)) : 
+                      suffixIcon: _isCheckingSim ? const Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2)) : 
                         (_senderPhoneController.text.isNotEmpty ? Icon(_isSimMatch ? Icons.check_circle : Icons.error, color: _isSimMatch ? Colors.green : Colors.red, size: 18) : const Icon(Icons.phone_android, size: 18)),
                       helperText: (!_isSimMatch && _simErrorMsg.isNotEmpty) ? _simErrorMsg : null,
                       helperStyle: const TextStyle(color: Colors.red),
@@ -692,7 +691,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildFieldLabel('قيمة الرصيد (بالآلاف):'),
                   TextField(
                     controller: _amountController,
-                    // === إضافة رسالة الخطأ عند تجاوز السقف ===
                     decoration: _inputDecoration('مثلاً 5000').copyWith(
                       errorText: _isOverDailyLimit 
                           ? 'هذه القيمة اكثر من اعلى من سقف التحويل اليومي' 
@@ -716,7 +714,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Text('الصافي: $_receiveAmount د.ع', style: const TextStyle(fontWeight: FontWeight.bold))
                         ]
                       )
-                    ),
+                  ),
 
                   const SizedBox(height: 25),
                   _buildRasedPayButton(color, setModalState),
@@ -731,9 +729,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildRasedPayButton(Color color, StateSetter setModalState) {
-    // === التحقق من شرط السقف اليومي قبل تفعيل الزر ===
-    bool canConfirm = !_isInvalidAmount && !_isOverDailyLimit && _amountController.text.isNotEmpty && _senderPhoneController.text.isNotEmpty && _isSimMatch;
+    // === التحقق من وجود رقم Qi Card قبل تفعيل الزر ===
+    bool isQiCardMissing = _receivingCard == 'QiCard' && (_hiddenQiNumber == null || _hiddenQiNumber!.isEmpty);
 
+    bool canConfirm = !isQiCardMissing && !_isInvalidAmount && !_isOverDailyLimit && _amountController.text.isNotEmpty && _senderPhoneController.text.isNotEmpty && _isSimMatch;
+    
     return Opacity(
       opacity: canConfirm ? 1.0 : 0.4,
       child: SizedBox(
@@ -749,9 +749,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildFieldLabel(String label) => Align(alignment: Alignment.centerRight, child: Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))));
-  
   InputDecoration _inputDecoration(String hint) => InputDecoration(hintText: hint, filled: true, fillColor: Colors.grey.shade100, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12));
-
   Widget _buildRecentTransactionsHeader() {
     return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('آخر التحويلات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), TextButton(onPressed: () {}, child: Text('الكل', style: TextStyle(color: emeraldColor)))]);
   }
