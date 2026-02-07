@@ -1,67 +1,42 @@
-name: Build iOS IPA (No-Sign / TrollStore)
+name: iOS-ipa-build
 
 on:
-  # هذا الخيار يسمح لك بتشغيل البناء يدوياً بضغطة زر
   workflow_dispatch:
-  # أو يعمل تلقائياً عند رفع تعديل جديد
-  push:
-    branches: [ "main" ]
 
 jobs:
-  build_ios_unsigned:
-    name: Build Unsigned IPA
+  build-ios:
+    name: 🎉 iOS Build
     runs-on: macos-latest
-
     steps:
-      # 1. جلب الكود من المستودع
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      # 2. تثبيت Flutter
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           architecture: x64
+      - run: flutter pub get
+      
 
-      # 3. جلب المكتبات
-      - name: Install Dependencies
-        run: flutter pub get
+      - run: pod repo update
+        working-directory: ios
 
-      # 4. تثبيت مكتبات iOS (Pods)
-      - name: Install CocoaPods
-        run: |
-          cd ios
-          pod install --repo-update
-          cd ..
+      - run: flutter build ios --release --no-codesign
 
-      # 5. بناء التطبيق بدون توقيع (هنا السر)
-      - name: Build iOS App (No Codesign)
-        run: |
-          flutter build ios --release --no-codesign
+      - run: mkdir Payload
+        working-directory: build/ios/iphoneos
 
-      # 6. تحويل ملف .app إلى .ipa يدوياً (خدعة TrollStore)
-      - name: Package into IPA
-        run: |
-          # الدخول لمجلد المخرجات
-          cd build/ios/iphoneos
-          
-          # إنشاء مجلد Payload (شرط أساسي لملفات IPA)
-          mkdir Payload
-          
-          # نقل التطبيق داخل المجلد
-          mv Runner.app Payload/
-          
-          # ضغط المجلد ليصبح ملف IPA
-          zip -r Raseed-NoSign.ipa Payload
-          
-          # نقل الملف النهائي للمجلد الرئيسي لرفعه
-          mv Raseed-NoSign.ipa ../../../
+      - run: mv Runner.app/ Payload
+        working-directory: build/ios/iphoneos
 
-      # 7. رفع الملف الناتج لك لتحميله
-      - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v4
+      - name: Zip output
+        run: zip -qq -r -9 FlutterIpaExport.ipa Payload
+        working-directory: build/ios/iphoneos
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
         with:
-          name: Raseed-TrollStore-IPA
-          path: Raseed-NoSign.ipa
-          retention-days: 5
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: build/ios/iphoneos/FlutterIpaExport.ipa
+          tag: v1.0
+          overwrite: true
+          body: "This is first release"
