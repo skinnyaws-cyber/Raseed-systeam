@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dashboard_screen.dart'; // تأكد من أن هذا الملف موجود
-import 'onboarding_screen.dart'; // تأكد من أن هذا الملف موجود
+import 'package:video_player/video_player.dart'; // المكتبة المطلوبة لتشغيل الفيديو
+import 'dashboard_screen.dart';
+import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,39 +12,39 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  // متغير للتحكم في شفافية الشعار (يبدأ مخفياً)
-  double _opacity = 0.0;
+  late VideoPlayerController _controller;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    
-    // 1. بدء تأثير الظهور (Fade In) بعد وقت قصير جداً من فتح الصفحة
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        setState(() {
-          _opacity = 1.0; // يصبح ظاهراً بالكامل
-        });
-      }
-    });
+    _initializeVideo();
+  }
 
-    // 2. بدء عملية الانتقال للصفحة التالية
-    _navigateToNextScreen();
+  // تهيئة مشغل الفيديو وتشغيله تلقائياً
+  void _initializeVideo() {
+    _controller = VideoPlayerController.asset('assets/fonts/images/logo_motion.MOV')
+      ..initialize().then((_) {
+        setState(() {
+          _isInitialized = true;
+        });
+        _controller.play(); // بدء التشغيل فور الجاهزية
+        
+        // ضبط وقت الانتظار لمدة 6 ثوانٍ (مدة الفيديو) قبل الانتقال
+        Future.delayed(const Duration(seconds: 6), () {
+          _navigateToNextScreen();
+        });
+      });
   }
 
   Future<void> _navigateToNextScreen() async {
-    // الانتظار لمدة 3 ثواني لكي يرى المستخدم الشعار
-    await Future.delayed(const Duration(seconds: 3));
-
     if (!mounted) return;
 
-    // التحقق من حالة المستخدم
+    // التحقق من حالة المستخدم: مسجل دخول أم مستخدم جديد 
     User? user = FirebaseAuth.instance.currentUser;
-    
-    // إذا كان مسجلاً يذهب للرئيسية، وإلا يذهب لشاشة الترحيب
     Widget nextScreen = (user != null) ? const DashboardScreen() : const OnboardingScreen();
 
-    // الانتقال السلس (Fade Transition)
+    // الانتقال المباشر مع تأثير تلاشي ناعم [cite: 441]
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
@@ -51,41 +52,31 @@ class _SplashScreenState extends State<SplashScreen> {
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(opacity: animation, child: child);
         },
-        transitionDuration: const Duration(milliseconds: 800), // مدة الانتقال
+        transitionDuration: const Duration(milliseconds: 1000), // تلاشي لمدة ثانية واحدة لراحة العين
       ),
     );
   }
 
   @override
+  void dispose() {
+    // إغلاق مشغل الفيديو لتحرير الذاكرة
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // اللون الأخضر المينيماليست الموحد (مطابق لإعدادات النظام)
-      backgroundColor: const Color(0xFF50878C),
+      // التعديل: تغيير لون الخلفية إلى الأخضر المشع المطلوب
+      backgroundColor: const Color(0xFFCCFF00),
       
       body: Center(
-        // الشعار يظهر بتأثير شفافية ناعم
-        child: AnimatedOpacity(
-          duration: const Duration(seconds: 2), // الشعار يأخذ ثانيتين ليظهر بالكامل
-          opacity: _opacity,
-          curve: Curves.easeOut, // منحنى حركة ناعم
-          child: Image.asset(
-            'assets/fonts/images/logo.png', // تأكد من وجود الصورة بهذا المسار
-            width: 180, // حجم متوسط وأنيق للشعار
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              // في حال لم تكن الصورة موجودة بعد، يظهر نص مؤقت
-              return const Text(
-                "RaseedPay",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'IBMPlexSansArabic',
-                ),
-              );
-            },
-          ),
-        ),
+        child: _isInitialized
+            ? AspectRatio(
+                aspectRatio: _controller.value.aspectRatio,
+                child: VideoPlayer(_controller),
+              )
+            : const SizedBox(), // يظهر فراغ بسيط أثناء التحميل الأولي (جزء من الثانية)
       ),
     );
   }
