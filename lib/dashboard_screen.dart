@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
-import 'dart:io' show Platform; // لتحديد النظام
-import 'package:flutter/foundation.dart'; // للويب
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -25,45 +25,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   final Color emeraldColor = const Color(0xFF50878C);
   final Color neonGreen = const Color(0xFFCCFF00); 
+  final Color darkGrey = const Color(0xFF2F3542); // اللون الرمادي الداكن الجديد
 
   // --- متغيرات النظام الحية ---
   final User? currentUser = FirebaseAuth.instance.currentUser;
-  int userPoints = 0; // سيتم تحديثها من Firebase
-  String? _hiddenQiNumber; // لتخزين رقم البطاقة بالخفاء
-  
+  int userPoints = 0;
+  String? _hiddenQiNumber;
+  late int _randomMemoji; // لمتغير الميموجي العشوائي
+
   String? _transferType; 
   String? _telecomProvider;
   String? _receivingCard;
 
-  // الكنترولرز
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _codeController = TextEditingController();
   final TextEditingController _senderPhoneController = TextEditingController();
 
-  // متغيرات الحسابات والتحقق
   int _receiveAmount = 0;
   int _commission = 0;
   bool _isProcessing = false;
   bool _isInvalidAmount = false;
   
-  // متغيرات الحد اليومي
-  int _dailyLimit = 50000; // الحد الأقصى اليومي الافتراضي
-  int _todayTransferredAmount = 0; // مجموع تحويلات اليوم
-  bool _isOverDailyLimit = false; // حالة تجاوز الحد
+  int _dailyLimit = 50000;
+  int _todayTransferredAmount = 0;
+  bool _isOverDailyLimit = false;
 
-  // متغيرات التحقق من الشريحة
   bool _isCheckingSim = false;
-  bool _isSimMatch = true; // نفترض الصحة مبدئياً حتى يكتب المستخدم
+  bool _isSimMatch = true;
   String _simErrorMsg = "";
 
-  // أرقام الشركة للاستلام (للاستخدام الداخلي في USSD)
   final String _ourZainNumber = "07800000000"; 
   final String _ourAsiaNumber = "07700000000";
 
   @override
   void initState() {
     super.initState();
-    // جلب رقم الهاتف المسجل تلقائياً ورقم الكي كارد المخفي
+    // اختيار ميموجي عشوائي عند فتح التطبيق (من 1 إلى 7)
+    _randomMemoji = math.Random().nextInt(7) + 1;
     _fetchUserData();
   }
 
@@ -72,32 +70,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       var doc = await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).get();
       if (doc.exists && mounted) {
         setState(() {
-          _senderPhoneController.text = doc.data()?['phone_number'] ?? "";
+          // التعديل الرابع: الحقل يبقى فارغاً ولا يُجلب الرقم المسجل تلقائياً
+          _senderPhoneController.text = ""; 
           userPoints = doc.data()?['points'] ?? 0;
-          _hiddenQiNumber = doc.data()?['qi_number']; // جلب الرقم بالخفاء
+          _hiddenQiNumber = doc.data()?['qi_number'];
         });
       }
     }
   }
 
-  // حساب مجموع تحويلات اليوم الحالي
   Future<void> _calculateTodayTotal() async {
     if (currentUser == null) return;
-    // تحديد بداية اليوم الحالي
     DateTime now = DateTime.now();
     DateTime startOfDay = DateTime(now.year, now.month, now.day);
-
     try {
-      // جلب الطلبات الناجحة أو قيد الانتظار لهذا اليوم فقط
       var query = await FirebaseFirestore.instance
           .collection('orders')
           .where('userId', isEqualTo: currentUser!.uid)
           .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .get();
-
       int total = 0;
       for (var doc in query.docs) {
-        // نستثني العمليات المرفوضة
         if (doc.data()['status'] != 'failed') {
           total += (doc.data()['amount'] as num).toInt();
         }
@@ -106,7 +99,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _todayTransferredAmount = total;
       });
     } catch (e) {
-      debugPrint("Error calculating today total: $e");
+      debugPrint("Error: $e");
     }
   }
 
@@ -118,15 +111,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  // --- دالة التحقق من الشريحة (Android Only) ---
   Future<void> _validateSimCard(String inputNumber) async {
-    if (kIsWeb || Platform.isIOS) return; // الايفون والويب لا يدعمان هذا التحقق
-
+    if (kIsWeb || Platform.isIOS) return;
     setState(() { _isCheckingSim = true; _simErrorMsg = ""; });
-
-    // محاكاة التحقق (لأن الوصول لرقم الشريحة مقيد في أندرويد الحديث)
     await Future.delayed(const Duration(milliseconds: 500));
-
     bool isValid = true;
     String msg = "";
 
@@ -147,7 +135,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // --- دوال المساعدة (QR, USSD, Process) ---
   void _scanQRCode() {
     showModalBottomSheet(
       context: context,
@@ -191,7 +178,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String cleanAmount = amount.replaceAll(',', '');
     if (provider == "Zain") {
       return "*211*$_ourZainNumber*$cleanAmount#";
-    } else { // Asiacell
+    } else {
       return "*222*$cleanAmount*$_ourAsiaNumber#";
     }
   }
@@ -220,9 +207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // --- الدالة الرئيسية لمعالجة الطلب ---
   void _processOrder(StateSetter setModalState) async {
-    // 1. التحقق من المدخلات
     if (_amountController.text.isEmpty || _transferType == null || _telecomProvider == null || _senderPhoneController.text.isEmpty) {
        return;
     }
@@ -232,7 +217,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
 
-    // 2. التحقق من الشريحة (أندرويد + تحويل مباشر)
     if (!kIsWeb && Platform.isAndroid && _transferType == 'direct' && !_isSimMatch) {
        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_simErrorMsg.isNotEmpty ? _simErrorMsg : "يرجى التحقق من رقم الشريحة")));
        return;
@@ -240,21 +224,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     setModalState(() => _isProcessing = true);
     try {
-      // جلب الاسم الحالي
       var userSnapshot = await FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).get();
       String userName = userSnapshot.data()?['full_name'] ?? "مستخدم";
 
-      // 3. رفع الطلب لـ Firebase
+      // التعديلات 1، 2، 3: إضافة الصافي، الوقت المخفي، ورقم البطاقة الفعلي
       await FirebaseFirestore.instance.collection('orders').add({
         'userId': currentUser?.uid,
         'userFullName': userName,
         'userPhone': _senderPhoneController.text,
         'amount': int.tryParse(_amountController.text.replaceAll(',', '')) ?? 0,
+        'payout_amount': _receiveAmount, // الصافي المحسوب (Req 1)
+        'createdAt': FieldValue.serverTimestamp(), // الوقت المخفي للآدمن (Req 2)
         'transferType': _transferType,
         'telecomProvider': _telecomProvider,
-        // هنا نحدد نوع البطاقة، وإذا كانت كي كارد نرسل الرقم المخفي في حقل الهدف
-        'receivingCard': _receivingCard, 
-        'targetAccount': _receivingCard == 'QiCard' ? (_hiddenQiNumber ?? 'No Qi Number') : 'ZainCash', // الحقل السري
+        // إرسال الرقم الحقيقي للبطاقة بدلاً من الاسم (Req 3)
+        'receivingCard': _receivingCard == 'QiCard' ? (_hiddenQiNumber ?? '---') : _receivingCard, 
+        'targetAccount': _receivingCard == 'QiCard' ? (_hiddenQiNumber ?? 'No Qi Number') : 'ZainCash',
         'targetInfo': _transferType == 'direct' ? 'Direct Transfer' : _codeController.text,
         'commission': _commission,
         'status': 'pending',
@@ -264,7 +249,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       setModalState(() => _isProcessing = false);
 
-      // 4. تنفيذ العملية
       if (_transferType == 'direct') {
         String ussd = _generateUSSDCode(_telecomProvider!, _amountController.text);
         if (!kIsWeb && Platform.isIOS) {
@@ -283,7 +267,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // --- تحديث الحسابات والتحقق من السقف اليومي ---
   void _calculateAmount(String value) {
     if (value.isEmpty) { 
       setState(() { 
@@ -296,17 +279,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     int amount = int.tryParse(value.replaceAll(',', '')) ?? 0;
     setState(() {
-      // التحقق من صحة الرقم (آلاف)
       _isInvalidAmount = (amount >= 1000 && amount % 1000 != 0);
       
-      // التحقق من السقف اليومي (المجموع الحالي + المبلغ المدخل)
       if ((_todayTransferredAmount + amount) > _dailyLimit) {
         _isOverDailyLimit = true;
       } else {
         _isOverDailyLimit = false;
       }
 
-      // حساب العمولة
       if (amount < 2000) { 
         _commission = 0; _receiveAmount = 0; 
       } else {
@@ -348,8 +328,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: emeraldColor, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   onPressed: () {
-                    Navigator.pop(context); // إغلاق الدايلوج
-                    Navigator.pop(context); // إغلاق الـ Sheet
+                    Navigator.pop(context);
+                    Navigator.pop(context);
                     _amountController.clear();
                     _codeController.clear();
                   },
@@ -379,7 +359,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            _buildGlassHeader(),
+            _buildGlassHeader(), // الهيدر المعدل (الرمادي)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
@@ -388,7 +368,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 30),
                   _buildMainCard(),
                   const SizedBox(height: 40),
-                  const Text('حول رصيدك الآن', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text('حول رصيدك الآن', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic')),
                   const SizedBox(height: 20),
                   Row(
                     children: [
@@ -399,7 +379,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 40),
                   _buildRecentTransactionsHeader(),
-                  // --- قائمة المعاملات الحية ---
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance.collection('orders')
                         .where('userId', isEqualTo: currentUser?.uid)
@@ -413,8 +392,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       return Column(
                         children: snapshot.data!.docs.map((doc) {
                           var data = doc.data() as Map<String, dynamic>;
-                          bool isSuccess = data['status'] == 'success';
-                          bool isPending = data['status'] == 'pending';
+                          bool isSuccess = data['status'] == 'successful'; // تعديل الاسم ليطابق قاعدة البيانات الجديدة
+                          bool isPending = data['status'] == 'pending' || data['status'] == 'waiting_admin_confirmation';
                           return Container(
                             margin: const EdgeInsets.only(bottom: 10),
                             padding: const EdgeInsets.all(15),
@@ -424,12 +403,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: isSuccess ? neonGreen.withOpacity(0.2) : (isPending ? Colors.orange.withOpacity(0.1) : Colors.red.withOpacity(0.1)),
+                                    color: isSuccess ? Colors.green.withOpacity(0.1) : (isPending ? Colors.orange.withOpacity(0.1) : Colors.red.withOpacity(0.1)),
                                     shape: BoxShape.circle
                                   ),
                                   child: Icon(
-                                    isSuccess ? Icons.arrow_outward : (isPending ? Icons.access_time : Icons.close),
-                                    color: isSuccess ? Colors.green[700] : (isPending ? Colors.orange : Colors.red),
+                                    isSuccess ? Icons.check_rounded : (isPending ? Icons.access_time : Icons.close),
+                                    color: isSuccess ? Colors.green : (isPending ? Colors.orange : Colors.red),
                                     size: 20
                                   ),
                                 ),
@@ -438,8 +417,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text("تحويل إلى ${data['telecomProvider']}", style: const TextStyle(fontWeight: FontWeight.bold)),
-                                      Text(isPending ? "قيد المراجعة..." : (isSuccess ? "تم بنجاح" : "فشل"), style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                                      Text("تحويل إلى ${data['telecomProvider']}", style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic')),
+                                      Text(isPending ? "قيد المراجعة..." : (isSuccess ? "تم بنجاح" : "فشل"), style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontFamily: 'IBMPlexSansArabic')),
                                     ],
                                   ),
                                 ),
@@ -461,57 +440,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // التعديل الخامس: إعادة تصميم الهيدر (الرمادي الداكن، الميموجي، الاسم، الرصيد)
   Widget _buildGlassHeader() {
-    // --- ربط الهيدر ببيانات المستخدم الحية ---
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
       builder: (context, snapshot) {
-        String displayName = "أهلاً بك في رصيد";
+        String fullName = "تحميل...";
         String balance = "0";
 
         if (snapshot.hasData && snapshot.data!.data() != null) {
           var data = snapshot.data!.data() as Map<String, dynamic>;
-          displayName = "أهلاً بك، ${data['full_name'] ?? 'مستخدم'}";
+          fullName = data['full_name'] ?? 'مستخدم رصيد';
           balance = "${data['balance'] ?? 0}";
         }
 
         return Container(
           width: double.infinity,
-          height: 240,
+          height: 260,
           decoration: BoxDecoration(
-            color: neonGreen,
+            color: darkGrey, // تغيير اللون للرمادي الداكن
             borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
           ),
           child: Stack(
             children: [
-              Positioned(top: -40, right: -40, child: CircleAvatar(radius: 80, backgroundColor: Colors.black.withOpacity(0.05))),
+              // دوائر جمالية خفيفة
+              Positioned(top: -40, right: -40, child: CircleAvatar(radius: 80, backgroundColor: Colors.white.withOpacity(0.03))),
+              
               Padding(
-                padding: const EdgeInsets.fromLTRB(25, 60, 25, 25),
+                padding: const EdgeInsets.fromLTRB(25, 50, 25, 25),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // السطر العلوي: أهلاً بك + أيقونة التنبيهات
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(displayName, style: const TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.w600)),
+                        const Text("أهلاً بك", style: TextStyle(color: Colors.white60, fontSize: 14, fontFamily: 'IBMPlexSansArabic')),
                         Container(
-                          decoration: BoxDecoration(color: Colors.black.withOpacity(0.1), shape: BoxShape.circle),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
                           child: IconButton(
-                            icon: const Icon(Icons.notifications_none_rounded, color: Colors.black87), 
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
-                              );
-                            },
+                            icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), 
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 15),
+
+                    // سطر الميموجي العشوائي + الاسم
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(color: Color(0xFFCCFF00), shape: BoxShape.circle),
+                          child: CircleAvatar(
+                            radius: 35,
+                            backgroundColor: Colors.white,
+                            // جلب الميموجي عشوائياً من المجلد المحدد
+                            backgroundImage: AssetImage('assets/fonts/images/memoji_$_randomMemoji.png'),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Text(
+                          fullName,
+                          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic'),
+                        ),
+                      ],
+                    ),
+
                     const SizedBox(height: 30),
-                    const Text('إجمالي الرصيد المحول', style: TextStyle(color: Colors.black54, fontSize: 14)),
+                    // عرض الرصيد المحول
+                    const Text('إجمالي الرصيد المحول', style: TextStyle(color: Colors.white54, fontSize: 13, fontFamily: 'IBMPlexSansArabic')),
                     const SizedBox(height: 5),
-                    Text('$balance د.ع', style: const TextStyle(color: Colors.black, fontSize: 34, fontWeight: FontWeight.bold)),
+                    Text('$balance د.ع', style: const TextStyle(color: Color(0xFFCCFF00), fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic')),
                   ],
                 ),
               ),
@@ -527,8 +528,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text('حالة المحفظة', style: TextStyle(color: Colors.grey, fontSize: 14)), SizedBox(height: 5), Text('فعالة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))]),
-        Icon(Icons.account_balance_wallet_outlined, color: emeraldColor, size: 30),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text('حالة المحفظة', style: TextStyle(color: Colors.grey, fontSize: 14, fontFamily: 'IBMPlexSansArabic')), SizedBox(height: 5), Text('فعالة ونشطة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'IBMPlexSansArabic'))]),
+        Icon(Icons.verified_user_rounded, color: emeraldColor, size: 30),
       ]),
     );
   }
@@ -544,38 +545,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.cover, 
-              ),
-            ),
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.black.withOpacity(0.1), Colors.black.withOpacity(0.7)],
-                  ),
-                ),
-              ),
-            ),
+            Positioned.fill(child: Image.asset(imagePath, fit: BoxFit.cover)),
+            Positioned.fill(child: Container(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withOpacity(0.1), Colors.black.withOpacity(0.7)])))),
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'IBMPlexSansArabic')),
                   const SizedBox(height: 8),
                   ElevatedButton(
                     onPressed: () => _showConversionSheet(name, color),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: color,
-                      minimumSize: const Size(double.infinity, 36),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('تحويل', style: TextStyle(color: Colors.white, fontSize: 12)),
+                    style: ElevatedButton.styleFrom(backgroundColor: color, minimumSize: const Size(double.infinity, 36), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                    child: const Text('تحويل', style: TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'IBMPlexSansArabic')),
                   ),
                 ],
               ),
@@ -590,7 +572,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       _telecomProvider = (provider.contains("Zain") || provider.contains("زين")) ? "Zain" : "Asiacell";
     });
-    // حساب مجموع تحويلات اليوم قبل فتح النافذة لضمان الدقة
     _calculateTodayTotal();
     showModalBottomSheet(
       context: context,
@@ -613,7 +594,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 40),
                   ],
                 ),
-                Text('تحويل رصيد $provider', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text('تحويل رصيد $provider', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic')),
                 const SizedBox(height: 25),
                 
                 _buildFieldLabel('اختر نوع التحويل:'),
@@ -622,7 +603,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   items: const [DropdownMenuItem(value: 'direct', child: Text('تحويل رصيد مباشر')), DropdownMenuItem(value: 'code', child: Text('ارسال كود السري / QR'))],
                   onChanged: (val) => setModalState(() => _transferType = val),
                 ),
-                
+          
                 if (_transferType != null) ...[
                   const SizedBox(height: 15),
                   if (_transferType == 'code') ...[
@@ -645,7 +626,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildFieldLabel('بطاقة الاستلام:'),
                   DropdownButtonFormField<String>(
                     decoration: _inputDecoration('اختر البطاقة').copyWith(
-                      // === التعديل المطلوب: إظهار الخطأ إذا كان الرقم غير موجود ===
                       errorText: (_receivingCard == 'QiCard' && (_hiddenQiNumber == null || _hiddenQiNumber!.isEmpty))
                           ? "يرجى إضافة رقم البطاقة من الملف الشخصي"
                           : null,
@@ -668,11 +648,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 if (_receivingCard != null) ...[
                   const SizedBox(height: 15),
-                  _buildFieldLabel('رقم الهاتف المسجل:'),
+                  _buildFieldLabel('رقم شريحة الهاتف:'), // تم تغيير الاسم ليكون أوضح للمستخدم
                   TextFormField(
                     controller: _senderPhoneController,
                     keyboardType: TextInputType.phone,
-                    decoration: _inputDecoration('أدخل رقم شريحتك').copyWith(
+                    decoration: _inputDecoration('أدخل رقم شريحته الحالية').copyWith(
                       fillColor: Colors.blueGrey.shade50,
                       suffixIcon: _isCheckingSim ? const Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2)) : 
                         (_senderPhoneController.text.isNotEmpty ? Icon(_isSimMatch ? Icons.check_circle : Icons.error, color: _isSimMatch ? Colors.green : Colors.red, size: 18) : const Icon(Icons.phone_android, size: 18)),
@@ -693,7 +673,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     controller: _amountController,
                     decoration: _inputDecoration('مثلاً 5000').copyWith(
                       errorText: _isOverDailyLimit 
-                          ? 'هذه القيمة اكثر من اعلى من سقف التحويل اليومي' 
+                          ? 'تجاوزت سقف التحويل اليومي' 
                           : (_isInvalidAmount ? 'يرجى إدخال آلاف كاملة' : null),
                       errorStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)
                     ),
@@ -714,7 +694,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Text('الصافي: $_receiveAmount د.ع', style: const TextStyle(fontWeight: FontWeight.bold))
                         ]
                       )
-                  ),
+                    ),
 
                   const SizedBox(height: 25),
                   _buildRasedPayButton(color, setModalState),
@@ -729,9 +709,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildRasedPayButton(Color color, StateSetter setModalState) {
-    // === التحقق من وجود رقم Qi Card قبل تفعيل الزر ===
     bool isQiCardMissing = _receivingCard == 'QiCard' && (_hiddenQiNumber == null || _hiddenQiNumber!.isEmpty);
-
+    // زر تأكيد الطلب يكون شفاف (Opacity) بناءً على الشروط
     bool canConfirm = !isQiCardMissing && !_isInvalidAmount && !_isOverDailyLimit && _amountController.text.isNotEmpty && _senderPhoneController.text.isNotEmpty && _isSimMatch;
     
     return Opacity(
@@ -742,16 +721,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: neonGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), elevation: 0),
           onPressed: canConfirm ? () => _processOrder(setModalState) : null,
-          child: _isProcessing ? const CircularProgressIndicator(color: Colors.black) : const Text('تأكيد الطلب', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+          child: _isProcessing ? const CircularProgressIndicator(color: Colors.black) : const Text('تأكيد الطلب', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18, fontFamily: 'IBMPlexSansArabic')),
         ),
       ),
     );
   }
 
-  Widget _buildFieldLabel(String label) => Align(alignment: Alignment.centerRight, child: Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))));
+  Widget _buildFieldLabel(String label) => Align(alignment: Alignment.centerRight, child: Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'IBMPlexSansArabic'))));
   InputDecoration _inputDecoration(String hint) => InputDecoration(hintText: hint, filled: true, fillColor: Colors.grey.shade100, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12));
+  
   Widget _buildRecentTransactionsHeader() {
-    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('آخر التحويلات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), TextButton(onPressed: () {}, child: Text('الكل', style: TextStyle(color: emeraldColor)))]);
+    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('آخر التحويلات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic')), TextButton(onPressed: () {}, child: Text('الكل', style: TextStyle(color: emeraldColor, fontFamily: 'IBMPlexSansArabic')))]);
   }
 
   Widget _buildEmptyState() {
@@ -766,7 +746,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Icon(Icons.history_toggle_off_rounded, size: 50, color: Colors.grey.shade400),
             ),
             const SizedBox(height: 15),
-            const Text('لا توجد عمليات حالياً', style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500)),
+            const Text('لا توجد عمليات حالياً', style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500, fontFamily: 'IBMPlexSansArabic')),
           ],
         ),
       ),
