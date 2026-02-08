@@ -587,6 +587,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 ),
+],
+),
                     const SizedBox(height: 15),
 
                     // صف الصورة والاسم (تم التعديل: إزالة الإطار وتصغير الحجم)
@@ -625,7 +627,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           }
                         }
                         return Text('${intl.NumberFormat('#,###').format(totalTransferred)} د.ع', 
-                          style: const TextStyle(color: Color(0xFFCCFF00), fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic'));
+                          style: const TextStyle(color: Color(0xFFFFFFFF), fontSize: 25, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic'));
                       }
                     ),
                   ],

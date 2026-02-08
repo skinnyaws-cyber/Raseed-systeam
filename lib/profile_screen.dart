@@ -366,7 +366,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildSupportItem(Icons.telegram, "Telegram", "تواصل مباشر", () => _launchLink("https://t.me/raseedpay"), Colors.blue),
             _buildSupportItem(Icons.email, "Email", "راسلنا عبر البريد", () => _launchLink("mailto:payrassed@gmail.com"), Colors.red),
             _buildSupportItem(Icons.chat, "WhatsApp", "قريباً", () {}, Colors.green),
-            _buildSupportItem(Icons.camera_alt, "Instagram", "قريباً", () {}, Colors.pink),
+            _buildSupportItem(Icons.camera_alt, "Instagram", "اتطلع على اخر التحديثات", () => _launchLink("https://www.instagram.com/raseedpay?igsh=MTFtZWcyZzNkb3diZw%3D%3D&utm_source=qr"), Colors.pink),
             const SizedBox(height: 20),
           ],
         ),
