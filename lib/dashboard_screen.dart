@@ -520,44 +520,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         
                         // منطق النقطة الحمراء للإشعارات
                         StreamBuilder<QuerySnapshot>(
-                          stream: FirebaseFirestore.instance.collection('notifications')
-                              .where('userId', isEqualTo: currentUser?.uid)
-                              .where('isRead', isEqualTo: false) // البحث عن غير المقروءة
-                              .snapshots(),
-                          builder: (context, notifSnap) {
-                            // التحقق من وجود إشعارات غير مقروءة
-                            bool hasUnread = notifSnap.hasData && notifSnap.data!.docs.isNotEmpty;
+  // 1. نستمع لأحدث إشعار واصل (سواء كان عاماً أو خاصاً)
+  stream: FirebaseFirestore.instance
+      .collection('notifications')
+      .where('userId', whereIn: [currentUser?.uid, 'all'])
+      .orderBy('timestamp', descending: true)
+      .limit(1) // نحتاج فقط معرفة تاريخ أحدث إشعار
+      .snapshots(),
+  builder: (context, notificationSnapshot) {
+    // 2. نستمع لبيانات المستخدم لنعرف متى آخر مرة فتح الإشعارات
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
+      builder: (context, userSnapshot) {
+        
+        bool showRedDot = false;
+
+        if (notificationSnapshot.hasData && notificationSnapshot.data!.docs.isNotEmpty && 
+            userSnapshot.hasData && userSnapshot.data!.data() != null) {
+          
+          // جلب توقيت أحدث إشعار
+          var latestNotification = notificationSnapshot.data!.docs.first;
+          Timestamp? notifTime = latestNotification['timestamp'];
+
+          // جلب توقيت آخر تفقد للمستخدم
+          var userData = userSnapshot.data!.data() as Map<String, dynamic>;
+          Timestamp? lastCheckTime = userData['last_notification_check'];
+
+          // المنطق: إذا لم يتفقد المستخدم الإشعارات ابداً، أو إذا كان الإشعار أحدث من آخر تفقد -> أظهر النقطة
+          if (notifTime != null) {
+            if (lastCheckTime == null) {
+              showRedDot = true; // مستخدم جديد أو لم يفتح الإشعارات من قبل
+            } else if (notifTime.compareTo(lastCheckTime) > 0) {
+              showRedDot = true; // يوجد إشعار جديد جاء بعد آخر زيارة
+            }
+          }
+        }
                             
                             return Stack(
-                              children: [
-                                Container(
-                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
-                                  child: IconButton(
-                                    icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), 
-                                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
-                                  ),
-                                ),
-                                // رسم النقطة الحمراء إذا وجدت إشعارات
-                                if (hasUnread)
-                                  Positioned(
-                                    right: 10,
-                                    top: 10,
-                                    child: Container(
-                                      width: 10,
-                                      height: 10,
-                                      decoration: BoxDecoration(
-                                        color: Colors.red,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: darkGrey, width: 2)
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          }
-                        ),
-                      ],
-                    ),
+          children: [
+            Container(
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
+              child: IconButton(
+                icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), 
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
+                },
+              ),
+            ),
+            if (showRedDot)
+              Positioned(
+                right: 10,
+                top: 10,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: darkGrey, width: 2) // حدود لتمييز النقطة
+                  ),
+                ),
+              ),
+          ],
+        );
+      }
+    );
+  }
+),
                     const SizedBox(height: 15),
 
                     // صف الصورة والاسم (تم التعديل: إزالة الإطار وتصغير الحجم)
