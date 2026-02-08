@@ -42,7 +42,7 @@ flutter:
     - assets/fonts/images/zain_logo.png
     - assets/fonts/images/raseed-card.png
     - assets/fonts/images/qi_card_icon.png
-    - assets/fonts/images/logo_motion.MOV
+    - assets/fonts/images/splash_bg.png
 
   fonts:
     - family: IBMPlexSansArabic
@@ -60,13 +60,13 @@ flutter_icons:
   min_sdk_android: 21
 
 flutter_native_splash:
-  color: "#CCFF00"
-  image: assets/fonts/images/logo_motion.MOV
-  branding: assets/fonts/images/logo_motion.MOV
+  
+  image: assets/fonts/images/splash_bg.png
+  branding: assets/fonts/images/splash_bg.png
   
   android_12:
-    image: assets/fonts/images/logo_motion.MOV
-    color: "#CCFF00"
+    image: assets/fonts/images/splash_bg.png
+    
   
   android: true
   ios: true
