@@ -43,6 +43,13 @@ flutter:
     - assets/fonts/images/raseed-card.png
     - assets/fonts/images/qi_card_icon.png
     - assets/fonts/images/splash_bg.png
+    - assets/fonts/images/memoji_1.png
+    - assets/fonts/images/memoji_2.png
+    - assets/fonts/images/memoji_3.png
+    - assets/fonts/images/memoji_4.png
+    - assets/fonts/images/memoji_5.png
+    - assets/fonts/images/memoji_6.png
+    - assets/fonts/images/memoji_7.png
 
   fonts:
     - family: IBMPlexSansArabic
