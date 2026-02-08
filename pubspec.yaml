@@ -50,6 +50,7 @@ flutter:
     - assets/fonts/images/memoji_5.png
     - assets/fonts/images/memoji_6.png
     - assets/fonts/images/memoji_7.png
+    - assets/fonts/images/logo.png
 
   fonts:
     - family: IBMPlexSansArabic
@@ -67,13 +68,14 @@ flutter_icons:
   min_sdk_android: 21
 
 flutter_native_splash:
-  color: "#88E788"
-  image: assets/fonts/images/splash_bg.png  
-  branding: assets/fonts/images/splash_bg.png
+  color: "#0BDA51"
+  image: assets/fonts/images/logo.png  
+  branding: assets/fonts/images/logo.png
 
   android_12:
-    image: assets/fonts/images/splash_bg.png
-    color: "#88E788"
+    image: assets/fonts/images/logo.png
+    background_image: assets/fonts/images/splash_bg.png
+    color: "#0BDA51"
 
   android: true
   ios: true
