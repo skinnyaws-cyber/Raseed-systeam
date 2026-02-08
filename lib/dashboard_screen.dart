@@ -505,7 +505,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Stack(
             children: [
               // دوائر خلفية جمالية
-              Positioned(top: -40, right: -40, child: CircleAvatar(radius: 80, backgroundColor: Colors.white.withOpacity(0.03))),
+              Positioned(top: -40, right: -40, child: CircleAvatar(radius: 40, backgroundColor: Colors.white.withOpacity(0.03))),
               
               Padding(
                 padding: const EdgeInsets.fromLTRB(25, 50, 25, 25),
