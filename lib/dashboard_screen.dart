@@ -54,8 +54,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isSimMatch = true;
   String _simErrorMsg = "";
 
-  final String _ourZainNumber = "07800000000"; 
-  final String _ourAsiaNumber = "07700000000";
+  final String _ourZainNumber = "07817816288"; 
+  final String _ourAsiaNumber = "07713463843";
 
   @override
   void initState() {
