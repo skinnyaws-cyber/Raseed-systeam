@@ -187,7 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           _buildSettingsTile(Icons.headset_mic_rounded, 'الدعم الفني', 'تواصل مع فريق رصيد', onTap: () => _showSupportSheet(context)),
           const Divider(indent: 20, endIndent: 20),
-          _buildSettingsTile(Icons.info_outline_rounded, 'عن رصيد', 'الموقع الرسمي', onTap: () => _launchLink('https://google.com')), 
+          _buildSettingsTile(Icons.info_outline_rounded, 'عن رصيد', 'الموقع الرسمي', onTap: () => _launchLink('https://raseedpay.netlify.app/')), 
         ],
       ),
     );
@@ -363,7 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             const Text("تواصل معنا", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
-            _buildSupportItem(Icons.telegram, "Telegram", "تواصل مباشر", () => _launchLink("https://t.me/black4crow"), Colors.blue),
+            _buildSupportItem(Icons.telegram, "Telegram", "تواصل مباشر", () => _launchLink("https://t.me/raseedpay"), Colors.blue),
             _buildSupportItem(Icons.email, "Email", "راسلنا عبر البريد", () => _launchLink("mailto:payrassed@gmail.com"), Colors.red),
             _buildSupportItem(Icons.chat, "WhatsApp", "قريباً", () {}, Colors.green),
             _buildSupportItem(Icons.camera_alt, "Instagram", "قريباً", () {}, Colors.pink),
