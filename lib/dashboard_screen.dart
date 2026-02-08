@@ -426,7 +426,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 40),
                   _buildRecentTransactionsHeader(),
                   
-                  [cite_start]// تعديل: عرض آخر 5 تحويلات *ناجحة* فقط [cite: 293-294]
+                  // تعديل: عرض آخر 5 تحويلات *ناجحة* فقط 
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance.collection('orders')
                         .where('userId', isEqualTo: currentUser?.uid)
