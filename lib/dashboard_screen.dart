@@ -497,7 +497,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         return Container(
           width: double.infinity,
-          height: 260,
+          height: 300,
           decoration: BoxDecoration(
             color: darkGrey, // تغيير اللون للرمادي الداكن
             borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
@@ -577,7 +577,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 15),
                     // عرض إجمالي الرصيد المحول (المحسوب من الطلبات الناجحة فقط)
                     const Text('إجمالي الرصيد المحول', style: TextStyle(color: Colors.white54, fontSize: 13, fontFamily: 'IBMPlexSansArabic')),
                     const SizedBox(height: 5),
