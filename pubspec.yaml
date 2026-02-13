@@ -51,6 +51,8 @@ flutter:
     - assets/fonts/images/memoji_6.png
     - assets/fonts/images/memoji_7.png
     - assets/fonts/images/logo.png
+    - assets/fonts/images/asiacell_info.png
+    - assets/fonts/images/zain_info.png
 
   fonts:
     - family: IBMPlexSansArabic
