@@ -3,11 +3,7 @@ name: Build Android APK
 on:
   # يعمل هذا الملف عند الضغط اليدوي على الزر
   workflow_dispatch:
-  # يعمل أيضاً عند رفع أي تعديل على الفرع الرئيسي
-  push:
-    branches:
-      - main
-
+  
 jobs:
   build:
     name: Build APK
