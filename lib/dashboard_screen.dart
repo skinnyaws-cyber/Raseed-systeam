@@ -5,15 +5,15 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:intl/intl.dart' as intl; // استيراد intl لتنسيق الأرقام
+import 'package:intl/intl.dart' as intl;
 
 import 'notifications_screen.dart'; 
 import 'discounts_screen.dart';
 import 'orders_screen.dart';
 import 'profile_screen.dart';
+import 'transfer_instructions_screen.dart'; // استدعاء واجهة التعليمات الجديدة
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -26,7 +26,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   final Color emeraldColor = const Color(0xFF50878C);
   final Color neonGreen = const Color(0xFFCCFF00); 
-  final Color darkGrey = const Color(0xFF2F3542); // اللون الرمادي الداكن للبطاقة العلوية
+  final Color darkGrey = const Color(0xFF2F3542);
 
   // --- متغيرات النظام الحية ---
   final User? currentUser = FirebaseAuth.instance.currentUser;
@@ -34,12 +34,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _hiddenQiNumber;
   late int _randomMemoji; 
 
-  String? _transferType; 
+  String? _transferType = 'direct'; // تعيين مباشر كقيمة افتراضية ووحيدة
   String? _telecomProvider;
   String? _receivingCard;
 
   final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _codeController = TextEditingController();
   final TextEditingController _senderPhoneController = TextEditingController();
 
   int _receiveAmount = 0;
@@ -50,11 +49,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _dailyLimit = 50000;
   int _todayTransferredAmount = 0;
   bool _isOverDailyLimit = false;
-
   bool _isCheckingSim = false;
   bool _isSimMatch = true;
   String _simErrorMsg = "";
-
+  
   // أرقام الخدمة الخاصة بالتطبيق
   final String _ourZainNumber = "07800000000"; // استبدل بالرقم الحقيقي
   final String _ourAsiaNumber = "07700000000"; // استبدل بالرقم الحقيقي
@@ -62,19 +60,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // اختيار رقم عشوائي بين 1 و 7 لصور الميموجي
     _randomMemoji = math.Random().nextInt(7) + 1;
     _fetchUserData();
-    _calculateTodayTotal(); // حساب إجمالي تحويلات اليوم للتحقق من السقف اليومي
+    _calculateTodayTotal();
   }
 
-  // جلب بيانات المستخدم (النقاط، رقم البطاقة المخفي)
   void _fetchUserData() async {
     if (currentUser != null) {
       var doc = await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).get();
       if (doc.exists && mounted) {
         setState(() {
-          // التعديل: ترك حقل الهاتف فارغاً ليقوم المستخدم بإدخال رقم الشريحة الفعلي
           _senderPhoneController.text = ""; 
           userPoints = doc.data()?['points'] ?? 0;
           _hiddenQiNumber = doc.data()?['qi_number'];
@@ -83,7 +78,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // حساب ما تم تحويله اليوم للتحقق من الحد اليومي (50,000)
   Future<void> _calculateTodayTotal() async {
     if (currentUser == null) return;
     DateTime now = DateTime.now();
@@ -96,7 +90,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .get();
       int total = 0;
       for (var doc in query.docs) {
-        // نستثني العمليات الفاشلة فقط
         if (doc.data()['status'] != 'failed') {
           total += (doc.data()['amount'] as num).toInt();
         }
@@ -112,27 +105,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void dispose() {
     _amountController.dispose();
-    _codeController.dispose();
     _senderPhoneController.dispose();
     super.dispose();
   }
 
-  // التحقق من تطابق الشريحة (أندرويد فقط)
   Future<void> _validateSimCard(String inputNumber) async {
     if (kIsWeb || Platform.isIOS) return;
-    
     setState(() { _isCheckingSim = true; _simErrorMsg = ""; });
     
-    // محاكاة وقت التحقق (أو استبدالها بكود التحقق الفعلي من الشريحة إذا توفرت المكتبة)
     await Future.delayed(const Duration(milliseconds: 500));
-    
     bool isValid = true;
     String msg = "";
 
-    // التحقق من البادئات
-    if (_telecomProvider == 'Zain' && !inputNumber.startsWith('078')) {
+    // التعديل: زين يقبل 078 و 079
+    if (_telecomProvider == 'Zain' && !inputNumber.startsWith('078') && !inputNumber.startsWith('079')) {
       isValid = false;
-      msg = "رقم زين يجب أن يبدأ بـ 078";
+      msg = "رقم زين يجب أن يبدأ بـ 078 أو 079";
     } else if (_telecomProvider == 'Asiacell' && !inputNumber.startsWith('077')) {
       isValid = false;
       msg = "رقم آسيا يجب أن يبدأ بـ 077";
@@ -147,62 +135,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // مسح QR Code
-  void _scanQRCode() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: const BoxDecoration(
-          color: Colors.black, 
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))
-        ),
-        child: Column(
-          children: [
-            AppBar(
-              backgroundColor: Colors.transparent, 
-              elevation: 0,
-              leading: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
-              title: const Text("مسح الكود", style: TextStyle(color: Colors.white, fontFamily: 'IBMPlexSansArabic')),
-            ),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: MobileScanner(
-                  onDetect: (capture) {
-                    final List<Barcode> barcodes = capture.barcodes;
-                    for (final barcode in barcodes) {
-                      String? raw = barcode.rawValue;
-                      if (raw != null) {
-                        // استخراج الأرقام فقط من الكود
-                        setState(() => _codeController.text = raw.replaceAll(RegExp(r'[^0-9]'), ''));
-                        Navigator.pop(context);
-                        break;
-                      }
-                    }
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // توليد كود التحويل USSD
+  // التعديل: صيغة آسيا سيل الجديدة
   String _generateUSSDCode(String provider, String amount) {
     String cleanAmount = amount.replaceAll(',', '');
-    if (provider == "Zain") {
-      return "*211*$_ourZainNumber*$cleanAmount#";
-    } else {
-      return "*222*$cleanAmount*$_ourAsiaNumber#";
+    if (provider == "Asiacell") {
+      return "*123*$cleanAmount*$_ourAsiaNumber#";
     }
+    return "";
   }
 
-  // تنفيذ الاتصال
   Future<void> _executeCall(String ussdCode) async {
     String encoded = ussdCode.replaceAll("#", "%23");
     final Uri url = Uri.parse("tel:$encoded");
@@ -213,7 +154,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // رسالة توجيه لمستخدمي iOS
+  // دالة مساعدة لترميز بيانات الرسالة (تجنب مشاكل iOS/Android)
+  String? encodeQueryParameters(Map<String, String> params) {
+    return params.entries
+        .map((MapEntry<String, String> e) =>
+            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+  }
+
+  // التعديل: تنفيذ إرسال رسالة SMS الخاصة بزين
+  Future<void> _executeSMS(String amount) async {
+    String cleanAmount = amount.replaceAll(',', '');
+    String message = "$_ourZainNumber $cleanAmount";
+    
+    final Uri smsLaunchUri = Uri(
+      scheme: 'sms',
+      path: '21112',
+      query: encodeQueryParameters(<String, String>{
+        'body': message,
+      }),
+    );
+
+    if (await canLaunchUrl(smsLaunchUri)) {
+      await launchUrl(smsLaunchUri);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("لا يمكن فتح تطبيق الرسائل")));
+    }
+  }
+
   void _showIOSTutorialDialog(String ussdCode) {
     showDialog(
       context: context,
@@ -232,9 +200,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // المعالجة الرئيسية للطلب وإرساله لقاعدة البيانات
+  // ديالوج تحذير زين قبل الانتقال للرسائل
+  void _showZainSmsDialog(StateSetter setModalState) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("تأكيد التحويل (زين)", style: TextStyle(fontFamily: 'IBMPlexSansArabic', fontWeight: FontWeight.bold)),
+        content: const Text(
+          "سيتم تحويلك إلى تطبيق الرسائل لإكمال عملية تحويل الرصيد.\nالرجاء إرسال الرسالة المجهزة مسبقاً دون أي تعديل.",
+          style: TextStyle(fontFamily: 'IBMPlexSansArabic', height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext), // إلغاء
+            child: const Text("إلغاء", style: TextStyle(color: Colors.grey, fontFamily: 'IBMPlexSansArabic')),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: neonGreen),
+            onPressed: () {
+              Navigator.pop(dialogContext); // إغلاق الديالوج
+              _finalizeOrder(setModalState); // المتابعة للحفظ والتحويل
+            },
+            child: const Text("موافق", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic')),
+          )
+        ],
+      ),
+    );
+  }
+
   void _processOrder(StateSetter setModalState) async {
-    // التحقق من المدخلات
     if (_amountController.text.isEmpty || _transferType == null || _telecomProvider == null || _senderPhoneController.text.isEmpty) {
        return;
     }
@@ -244,43 +239,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
 
-    // التحقق من الشريحة (أندرويد فقط وتحويل مباشر)
-    if (!kIsWeb && Platform.isAndroid && _transferType == 'direct' && !_isSimMatch) {
+    if (!kIsWeb && Platform.isAndroid && !_isSimMatch) {
        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_simErrorMsg.isNotEmpty ? _simErrorMsg : "يرجى التحقق من رقم الشريحة", style: const TextStyle(fontFamily: 'IBMPlexSansArabic'))));
        return;
     }
 
+    // إذا كان زين، نعرض التحذير أولاً، وإلا ننفذ فوراً
+    if (_telecomProvider == 'Zain') {
+      _showZainSmsDialog(setModalState);
+    } else {
+      _finalizeOrder(setModalState);
+    }
+  }
+
+  // عملية حفظ الطلب في قاعدة البيانات وتشغيل التحويل
+  void _finalizeOrder(StateSetter setModalState) async {
     setModalState(() => _isProcessing = true);
-    
     try {
-      // جلب اسم المستخدم الحالي
       var userSnapshot = await FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).get();
       String userName = userSnapshot.data()?['full_name'] ?? "مستخدم";
 
-      // إضافة الطلب لقاعدة البيانات مع الحقول الجديدة المطلوبة
       await FirebaseFirestore.instance.collection('orders').add({
         'userId': currentUser?.uid,
         'userFullName': userName,
-        'userPhone': _senderPhoneController.text, // رقم الشريحة المدخل
+        'userPhone': _senderPhoneController.text, 
         'amount': int.tryParse(_amountController.text.replaceAll(',', '')) ?? 0,
-        'payout_amount': _receiveAmount, // المبلغ الصافي (بعد خصم العمولة)
-        'createdAt': FieldValue.serverTimestamp(), // حقل الوقت المخفي للترتيب في الآدمن
-        'transferType': _transferType,
+        'payout_amount': _receiveAmount,
+        'createdAt': FieldValue.serverTimestamp(),
+        'transferType': 'direct', // ثابت دائماً
         'telecomProvider': _telecomProvider,
-        // إرسال رقم البطاقة الفعلي بدلاً من الاسم ليتمكن المدير من التحويل
         'receivingCard': _receivingCard == 'QiCard' ? (_hiddenQiNumber ?? '---') : _receivingCard, 
         'targetAccount': _receivingCard == 'QiCard' ? (_hiddenQiNumber ?? 'No Qi Number') : 'ZainCash',
-        'targetInfo': _transferType == 'direct' ? 'Direct Transfer' : _codeController.text,
+        'targetInfo': 'Direct Transfer',
         'commission': _commission,
-        'status': 'pending', // الحالة المبدئية
-        'timestamp': FieldValue.serverTimestamp(), // وقت العرض للمستخدم
+        'status': 'pending', 
+        'timestamp': FieldValue.serverTimestamp(),
         'deviceType': kIsWeb ? 'Web' : (Platform.isAndroid ? 'Android' : 'iOS'),
       });
 
       setModalState(() => _isProcessing = false);
 
-      // تنفيذ التحويل الفعلي (USSD) إذا كان مباشراً
-      if (_transferType == 'direct') {
+      if (_telecomProvider == 'Zain') {
+        await _executeSMS(_amountController.text);
+        _showDoubleCheckDialog();
+      } else {
         String ussd = _generateUSSDCode(_telecomProvider!, _amountController.text);
         if (!kIsWeb && Platform.isIOS) {
           _showIOSTutorialDialog(ussd);
@@ -288,9 +290,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           await _executeCall(ussd);
           _showDoubleCheckDialog();
         }
-      } else {
-        // إذا كان كود/QR فقط نعرض رسالة النجاح
-        _showDoubleCheckDialog();
       }
 
     } catch (e) {
@@ -299,7 +298,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // حساب العمولة والصافي والتحقق من المبالغ
   void _calculateAmount(String value) {
     if (value.isEmpty) { 
       setState(() { 
@@ -311,23 +309,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     int amount = int.tryParse(value.replaceAll(',', '')) ?? 0;
-    
     setState(() {
-      // التحقق من أن المبلغ من مضاعفات الألف
       _isInvalidAmount = (amount >= 1000 && amount % 1000 != 0);
       
-      // التحقق من الحد اليومي
       if ((_todayTransferredAmount + amount) > _dailyLimit) {
         _isOverDailyLimit = true;
       } else {
         _isOverDailyLimit = false;
       }
 
-      // حساب العمولة
       if (amount < 2000) { 
         _commission = 0; _receiveAmount = 0; 
       } else {
-        if (userPoints >= 50) { // خصم خاص للنقاط
+        if (userPoints >= 50) { 
           _commission = 0; 
         } else if (amount >= 10000) {
           _commission = ((amount * 0.10) / 1000).round() * 1000;
@@ -339,7 +333,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
   
-  // حوار تأكيد النجاح
   void _showDoubleCheckDialog() {
     showDialog(
       context: context,
@@ -366,10 +359,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: emeraldColor, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   onPressed: () {
-                    Navigator.pop(context); // إغلاق الديالوج
-                    Navigator.pop(context); // إغلاق الشيت
+                    Navigator.pop(context);
+                    Navigator.pop(context);
                     _amountController.clear();
-                    _codeController.clear();
                   },
                   child: const Text("حسناً", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic')),
                 ),
@@ -383,36 +375,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // صفحات التنقل السفلية
-    final List<Widget> _pages = [
+    final List<Widget> pages = [
       _buildHomeContent(), 
       const OrdersScreen(), 
       const DiscountsScreen(), 
       const ProfileScreen()
     ];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F7),
-      body: IndexedStack(index: _selectedIndex, children: _pages),
+      body: IndexedStack(index: _selectedIndex, children: pages),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
 
-  // === المحتوى الرئيسي للصفحة الرئيسية ===
   Widget _buildHomeContent() {
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(), // التعديل: إلغاء الارتداد المزعج بأمان تام
         child: Column(
           children: [
-            _buildGlassHeader(), // الهيدر المعدل
+            _buildGlassHeader(), 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 30),
-                  _buildMainCard(),
+                  _buildMainCard(), // المستطيل الذي تم تحويله لزر
+                  
                   const SizedBox(height: 40),
                   const Text('حول رصيدك الآن', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic')),
                   const SizedBox(height: 20),
@@ -426,11 +417,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 40),
                   _buildRecentTransactionsHeader(),
                   
-                  // تعديل: عرض آخر 5 تحويلات *ناجحة* فقط 
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance.collection('orders')
                         .where('userId', isEqualTo: currentUser?.uid)
-                        .where('status', isEqualTo: 'successful') // الشرط الجديد: ناجحة فقط
+                        .where('status', isEqualTo: 'successful') 
                         .orderBy('timestamp', descending: true)
                         .limit(5)
                         .snapshots(),
@@ -447,7 +437,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade100)),
                             child: Row(
                               children: [
-                                // أيقونة النجاح الثابتة لأننا نعرض الناجحة فقط
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
@@ -484,7 +473,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // === الهيدر المعدل (الرمادي الداكن + الميموجي + الإشعارات) ===
   Widget _buildGlassHeader() {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
@@ -499,12 +487,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           width: double.infinity,
           height: 275,
           decoration: BoxDecoration(
-            color: darkGrey, // تغيير اللون للرمادي الداكن
+            color: darkGrey, 
             borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
           ),
           child: Stack(
             children: [
-              // دوائر خلفية جمالية
               Positioned(top: -40, right: -40, child: CircleAvatar(radius: 40, backgroundColor: Colors.white.withOpacity(0.03))),
               
               Padding(
@@ -512,93 +499,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // الصف العلوي: الترحيب + زر الإشعارات بالنقطة الحمراء
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text("أهلاً بك", style: TextStyle(color: Colors.white60, fontSize: 20, fontFamily: 'IBMPlexSansArabic')),
                         
-                        // منطق النقطة الحمراء للإشعارات
                         StreamBuilder<QuerySnapshot>(
-  // 1. نستمع لأحدث إشعار واصل (سواء كان عاماً أو خاصاً)
-  stream: FirebaseFirestore.instance
-      .collection('notifications')
-      .where('userId', whereIn: [currentUser?.uid, 'all'])
-      .orderBy('timestamp', descending: true)
-      .limit(1) // نحتاج فقط معرفة تاريخ أحدث إشعار
-      .snapshots(),
-  builder: (context, notificationSnapshot) {
-    // 2. نستمع لبيانات المستخدم لنعرف متى آخر مرة فتح الإشعارات
-    return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
-      builder: (context, userSnapshot) {
-        
-        bool showRedDot = false;
+                          stream: FirebaseFirestore.instance
+                              .collection('notifications')
+                              .where('userId', whereIn: [currentUser?.uid, 'all'])
+                              .orderBy('timestamp', descending: true)
+                              .limit(1) 
+                              .snapshots(),
+                          builder: (context, notificationSnapshot) {
+                            return StreamBuilder<DocumentSnapshot>(
+                              stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
+                              builder: (context, userSnapshot) {
+                                
+                                bool showRedDot = false;
+                                if (notificationSnapshot.hasData && notificationSnapshot.data!.docs.isNotEmpty && 
+                                    userSnapshot.hasData && userSnapshot.data!.data() != null) {
+                                  
+                                  var latestNotification = notificationSnapshot.data!.docs.first;
+                                  Timestamp? notifTime = latestNotification['timestamp'];
 
-        if (notificationSnapshot.hasData && notificationSnapshot.data!.docs.isNotEmpty && 
-            userSnapshot.hasData && userSnapshot.data!.data() != null) {
-          
-          // جلب توقيت أحدث إشعار
-          var latestNotification = notificationSnapshot.data!.docs.first;
-          Timestamp? notifTime = latestNotification['timestamp'];
+                                  var userData = userSnapshot.data!.data() as Map<String, dynamic>;
+                                  Timestamp? lastCheckTime = userData['last_notification_check'];
 
-          // جلب توقيت آخر تفقد للمستخدم
-          var userData = userSnapshot.data!.data() as Map<String, dynamic>;
-          Timestamp? lastCheckTime = userData['last_notification_check'];
-
-          // المنطق: إذا لم يتفقد المستخدم الإشعارات ابداً، أو إذا كان الإشعار أحدث من آخر تفقد -> أظهر النقطة
-          if (notifTime != null) {
-            if (lastCheckTime == null) {
-              showRedDot = true; // مستخدم جديد أو لم يفتح الإشعارات من قبل
-            } else if (notifTime.compareTo(lastCheckTime) > 0) {
-              showRedDot = true; // يوجد إشعار جديد جاء بعد آخر زيارة
-            }
-          }
-        }
-                            
-                            return Stack(
-          children: [
-            Container(
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
-              child: IconButton(
-                icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), 
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
-                },
-              ),
-            ),
-            if (showRedDot)
-              Positioned(
-                right: 10,
-                top: 10,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: darkGrey, width: 2) // حدود لتمييز النقطة
-                  ),
-                ),
-              ),
-          ],
-        );
-      }
-    );
-  }
-),
-],
-),
+                                  if (notifTime != null) {
+                                    if (lastCheckTime == null) {
+                                      showRedDot = true;
+                                    } else if (notifTime.compareTo(lastCheckTime) > 0) {
+                                      showRedDot = true;
+                                    }
+                                  }
+                                }
+                                                    
+                                return Stack(
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), 
+                                        onPressed: () {
+                                          Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
+                                        },
+                                      ),
+                                    ),
+                                    if (showRedDot)
+                                      Positioned(
+                                        right: 10,
+                                        top: 10,
+                                        child: Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: darkGrey, width: 2) 
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              }
+                            );
+                          }
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 15),
 
-                    // صف الصورة والاسم (تم التعديل: إزالة الإطار وتصغير الحجم)
                     Row(
                       children: [
-                        // صورة الميموجي بدون إطار أخضر
                         CircleAvatar(
-                          radius: 32, // تصغير الحجم (كان 35)
-                          backgroundColor: Colors.transparent, // خلفية شفافة
-                          backgroundImage: AssetImage('assets/fonts/images/memoji_$_randomMemoji.png'), // التأكد من المسار
+                          radius: 32, 
+                          backgroundColor: Colors.transparent, 
+                          backgroundImage: AssetImage('assets/fonts/images/memoji_$_randomMemoji.png'), 
                         ),
                         const SizedBox(width: 15),
                         Text(
@@ -609,15 +586,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     const SizedBox(height: 15),
-                    // عرض إجمالي الرصيد المحول (المحسوب من الطلبات الناجحة فقط)
                     const Text('إجمالي الرصيد المحول', style: TextStyle(color: Colors.white54, fontSize: 15, fontFamily: 'IBMPlexSansArabic')),
                     const SizedBox(height: 5),
                     
-                    // حساب المجموع بشكل حي
                     StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance.collection('orders')
                           .where('userId', isEqualTo: currentUser?.uid)
-                          .where('status', isEqualTo: 'successful') // فقط الناجحة
+                          .where('status', isEqualTo: 'successful') 
                           .snapshots(),
                       builder: (context, snapshot) {
                         int totalTransferred = 0;
@@ -640,14 +615,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // التعديل: تحويل المستطيل الجامد إلى زر إرشادات أنيق بحجم أصغر
   Widget _buildMainCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text('حالة المحفظة', style: TextStyle(color: Colors.grey, fontSize: 14, fontFamily: 'IBMPlexSansArabic')), SizedBox(height: 5), Text('فعالة ونشطة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'IBMPlexSansArabic'))]),
-        Icon(Icons.verified_user_rounded, color: emeraldColor, size: 30),
-      ]),
+    return Align(
+      alignment: Alignment.centerRight,
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const TransferInstructionsScreen()));
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          decoration: BoxDecoration(
+            color: Colors.white, 
+            borderRadius: BorderRadius.circular(25), 
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min, // ليأخذ المستطيل حجم المحتوى فقط ولا يكون عريضاً جداً
+            children: [
+              const Text('إرشادات التحويل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'IBMPlexSansArabic')),
+              const SizedBox(width: 15),
+              Image.asset('assets/fonts/images/info.png', width: 24, height: 24),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -685,14 +677,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ورقة التحويل السفلية
   void _showConversionSheet(String provider, Color color) {
     setState(() {
       _telecomProvider = (provider.contains("Zain") || provider.contains("زين")) ? "Zain" : "Asiacell";
     });
-    // تحديث إجمالي اليوم قبل الفتح
     _calculateTodayTotal();
-    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -719,28 +708,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 
                 _buildFieldLabel('اختر نوع التحويل:'),
                 DropdownButtonFormField<String>(
+                  value: _transferType,
                   decoration: _inputDecoration('نوع التحويل'),
-                  items: const [DropdownMenuItem(value: 'direct', child: Text('تحويل رصيد مباشر')), DropdownMenuItem(value: 'code', child: Text('ارسال كود السري / QR'))],
+                  items: const [DropdownMenuItem(value: 'direct', child: Text('تحويل رصيد مباشر'))],
                   onChanged: (val) => setModalState(() => _transferType = val),
                 ),
-          
-                if (_transferType != null) ...[
-                  const SizedBox(height: 15),
-                  if (_transferType == 'code') ...[
-                    _buildFieldLabel('الكود السري للكرت:'),
-                    TextField(
-                      controller: _codeController,
-                      decoration: _inputDecoration('ادخل الكود').copyWith(
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.blue),
-                          onPressed: _scanQRCode,
-                        )
-                      )
-                    ),
-                    const SizedBox(height: 15),
-                  ],
-                ],
-
+                
                 if (_telecomProvider != null) ...[
                   const SizedBox(height: 15),
                   _buildFieldLabel('بطاقة الاستلام:'),
@@ -768,7 +741,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 if (_receivingCard != null) ...[
                   const SizedBox(height: 15),
-                  _buildFieldLabel('رقم شريحة الهاتف:'),
+                  // التعديل: تغيير اسم الحقل
+                  _buildFieldLabel('ادخل رقم الهاتف الذي يحتوي على الرصيد:'),
                   TextFormField(
                     controller: _senderPhoneController,
                     keyboardType: TextInputType.phone,
@@ -785,6 +759,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         setModalState(() {});
                       }
                     },
+                  ),
+                  
+                  // التعديل: إضافة التحذير باللون الأحمر
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8.0, bottom: 5.0),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'تحذير : يجب ادخال رقم SIM Card الذي يحتوي على الرصيد الفعلي وتأكد أن الرقم مطابق للـSIM card المدخل في هاتفك',
+                        style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic'),
+                      ),
+                    ),
                   ),
 
                   const SizedBox(height: 15),
@@ -814,7 +800,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Text('الصافي: $_receiveAmount د.ع', style: const TextStyle(fontWeight: FontWeight.bold))
                         ]
                       )
-                    ),
+                  ),
 
                   const SizedBox(height: 25),
                   _buildRasedPayButton(color, setModalState),
@@ -847,6 +833,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildFieldLabel(String label) => Align(alignment: Alignment.centerRight, child: Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'IBMPlexSansArabic'))));
+  
   InputDecoration _inputDecoration(String hint) => InputDecoration(hintText: hint, filled: true, fillColor: Colors.grey.shade100, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12));
   
   Widget _buildRecentTransactionsHeader() {
