@@ -497,7 +497,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         return Container(
           width: double.infinity,
-          height: 300,
+          height: 275,
           decoration: BoxDecoration(
             color: darkGrey, // تغيير اللون للرمادي الداكن
             borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
@@ -516,7 +516,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("أهلاً بك", style: TextStyle(color: Colors.white60, fontSize: 14, fontFamily: 'IBMPlexSansArabic')),
+                        const Text("أهلاً بك", style: TextStyle(color: Colors.white60, fontSize: 20, fontFamily: 'IBMPlexSansArabic')),
                         
                         // منطق النقطة الحمراء للإشعارات
                         StreamBuilder<QuerySnapshot>(
@@ -596,7 +596,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         // صورة الميموجي بدون إطار أخضر
                         CircleAvatar(
-                          radius: 28, // تصغير الحجم (كان 35)
+                          radius: 32, // تصغير الحجم (كان 35)
                           backgroundColor: Colors.transparent, // خلفية شفافة
                           backgroundImage: AssetImage('assets/fonts/images/memoji_$_randomMemoji.png'), // التأكد من المسار
                         ),
@@ -610,7 +610,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     const SizedBox(height: 15),
                     // عرض إجمالي الرصيد المحول (المحسوب من الطلبات الناجحة فقط)
-                    const Text('إجمالي الرصيد المحول', style: TextStyle(color: Colors.white54, fontSize: 13, fontFamily: 'IBMPlexSansArabic')),
+                    const Text('إجمالي الرصيد المحول', style: TextStyle(color: Colors.white54, fontSize: 15, fontFamily: 'IBMPlexSansArabic')),
                     const SizedBox(height: 5),
                     
                     // حساب المجموع بشكل حي
@@ -627,7 +627,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           }
                         }
                         return Text('${intl.NumberFormat('#,###').format(totalTransferred)} د.ع', 
-                          style: const TextStyle(color: Color(0xFFFFFFFF), fontSize: 25, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic'));
+                          style: const TextStyle(color: Color(0xFFFFFFFF), fontSize: 28, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic'));
                       }
                     ),
                   ],
