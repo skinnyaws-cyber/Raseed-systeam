@@ -48,6 +48,9 @@ flutter:
     - assets/fonts/images/asiacell_info.png
     - assets/fonts/images/zain_info.png
     - assets/fonts/images/info.png
+    - assets/fonts/images/asiacell_exp.png
+    - assets/fonts/images/asiacell_exp2.png
+    - assets/fonts/images/zain_exp.png
 
   fonts:
     - family: IBMPlexSansArabic
