@@ -301,12 +301,12 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
               // صور التوضيح داخل الإطارات الخاصة
               if (_selectedIndex == 0) ...[
                  // زين: صورة واحدة
-                 _buildFramedImage('assets/fonts/images/zain_info.png'), // مثال، استبدلها بصورة توضيحية حقيقية
+                 _buildFramedImage('assets/fonts/images/zain_exp.png'), // مثال، استبدلها بصورة توضيحية حقيقية
               ] else ...[
                  // آسيا: صورتين
-                 _buildFramedImage('assets/fonts/images/asiacell_info.png'),
+                 _buildFramedImage('assets/fonts/images/asiacell_exp.png'),
                  const SizedBox(height: 20),
-                 _buildFramedImage('assets/fonts/images/asiacell_info.png'),
+                 _buildFramedImage('assets/fonts/images/asiacell_exp2.png'),
               ],
 
               const SizedBox(height: 150), // مساحة إضافية في الأسفل عشان الزر ما يغطي الكلام
