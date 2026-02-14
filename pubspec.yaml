@@ -44,15 +44,10 @@ flutter:
     - assets/fonts/images/qi_card_icon.png
     - assets/fonts/images/splash_bg.png
     - assets/fonts/images/memoji_1.png
-    - assets/fonts/images/memoji_2.png
-    - assets/fonts/images/memoji_3.png
-    - assets/fonts/images/memoji_4.png
-    - assets/fonts/images/memoji_5.png
-    - assets/fonts/images/memoji_6.png
-    - assets/fonts/images/memoji_7.png
     - assets/fonts/images/logo.png
     - assets/fonts/images/asiacell_info.png
     - assets/fonts/images/zain_info.png
+    - assets/fonts/images/info.png
 
   fonts:
     - family: IBMPlexSansArabic
@@ -80,4 +75,4 @@ flutter_native_splash:
     color: "#0BDA51"
 
   android: true
-  ios: true
+  ios: false
