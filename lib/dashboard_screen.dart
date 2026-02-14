@@ -599,7 +599,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         CircleAvatar(
                           radius: 32, 
                           backgroundColor: Colors.transparent, 
-                          backgroundImage: AssetImage('assets/fonts/images/memoji_$_randomMemoji.png'), 
+                          backgroundImage: AssetImage('assets/fonts/images/memoji_1.png'), 
                         ),
                         const SizedBox(width: 15),
                         Text(
@@ -666,7 +666,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               const Text('إرشادات التحويل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, fontFamily: 'IBMPlexSansArabic', color: Color(0xFF2F3542))),
               const SizedBox(width: 20),
-              Image.asset('assets/fonts/images/info.png', width: 28, height: 28), // تكبير الصورة قليلاً
+              Image.asset('assets/fonts/images/info.png', width: 35, height: 35), // تكبير الصورة قليلاً
             ],
           ),
         ),
