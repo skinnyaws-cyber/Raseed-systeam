@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // ضروري لحفظ حالة ظهور الإيماءة
 
 class TransferInstructionsScreen extends StatefulWidget {
   const TransferInstructionsScreen({super.key});
@@ -10,17 +11,18 @@ class TransferInstructionsScreen extends StatefulWidget {
 
 class _TransferInstructionsScreenState extends State<TransferInstructionsScreen> {
   // === الألوان المطلوبة ===
-  final Color _zainColor = const Color(0xFF570053); // البنفسجي الغامق
-  final Color _asiaColor = const Color(0xFF9b0000); // الأحمر الغامق
-  final Color _instructionsColor = const Color(0xFF4CAF50); // أخضر عشبي للتعليمات
+  final Color _zainColor = const Color(0xFF570053); 
+  final Color _asiaColor = const Color(0xFF9b0000); 
+  final Color _instructionsColor = const Color(0xFF4CAF50); 
 
   // === حالة الواجهة ===
-  int _selectedIndex = 0; // 0 = Zain, 1 = Asiacell
-  bool _showInstructions = false; // هل نعرض التعليمات الآن؟
+  int _selectedIndex = 0; 
+  bool _showInstructions = false; 
+  bool _showSwipeHint = false; // التحكم بظهور إيماءة السحب
   
   late PageController _pageController;
 
-  // بيانات الشركات (الصور والنصوص)
+  // بيانات الشركات (الصور والنصوص المحدثة)
   final List<Map<String, dynamic>> _providers = [
     {
       'name': 'Zain',
@@ -66,8 +68,31 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
   @override
   void initState() {
     super.initState();
-    // viewportFraction يسمح بظهور جزء من البطاقات المجاورة (تأثير المروحة)
     _pageController = PageController(initialPage: 0, viewportFraction: 0.7);
+    _checkAndShowSwipeHint(); // التحقق من عرض الإيماءة
+  }
+
+  // التعديل 1: عرض الإيماءة لمرة واحدة فقط لكل مستخدم
+  Future<void> _checkAndShowSwipeHint() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool hasShown = prefs.getBool('hasShownTransferSwipeHint') ?? false;
+    
+    if (!hasShown) {
+      setState(() {
+        _showSwipeHint = true;
+      });
+      // حفظ الحالة لكي لا تظهر مرة أخرى
+      await prefs.setBool('hasShownTransferSwipeHint', true);
+      
+      // إخفاء الإيماءة تلقائياً بعد 3 ثوانٍ
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          setState(() {
+            _showSwipeHint = false;
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -76,7 +101,6 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
     super.dispose();
   }
 
-  // دالة لتغيير الخلفية بناءً على الحالة
   Color _getCurrentBackgroundColor() {
     if (_showInstructions) return _instructionsColor;
     return _selectedIndex == 0 ? _zainColor : _asiaColor;
@@ -84,11 +108,10 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
 
   @override
   Widget build(BuildContext context) {
-    // تحديد اللون الحالي للخلفية
     final Color activeColor = _getCurrentBackgroundColor();
 
     return Scaffold(
-      backgroundColor: Colors.white, // الأساس أبيض
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           // 1. الخلفية الفنية (الطلاء المسكوب)
@@ -98,7 +121,6 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
           SafeArea(
             child: Column(
               children: [
-                // العنوان العلوي
                 Padding(
                   padding: const EdgeInsets.only(top: 20, bottom: 10),
                   child: Row(
@@ -120,16 +142,14 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
                   ),
                 ),
 
-                // مساحة المروحة (تأخذ باقي الشاشة تقريباً)
                 Expanded(
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 500),
-                    opacity: _showInstructions ? 0.0 : 1.0, // تختفي عند ظهور التعليمات
+                    opacity: _showInstructions ? 0.0 : 1.0, 
                     child: _buildFanSelector(),
                   ),
                 ),
                 
-                // مساحة للزر السفلي لكي لا يغطي المحتوى
                 const SizedBox(height: 100), 
               ],
             ),
@@ -155,7 +175,7 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
             ),
           ),
           
-          // زر إغلاق الصفحة في الأعلى (اختياري للعودة للرئيسية)
+          // زر إغلاق الصفحة في الأعلى
           Positioned(
             top: 40,
             right: 20,
@@ -164,6 +184,33 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
               onPressed: () => Navigator.pop(context),
             ),
           ),
+
+          // 5. طبقة الإيماءة التوضيحية (Swipe Hint)
+          if (_showSwipeHint)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  color: Colors.black.withOpacity(0.5), // تعتيم خفيف للتركيز على الحركة
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const _AnimatedSwipeHand(), // اليد المتحركة
+                      const SizedBox(height: 20),
+                      const Text(
+                        "اختر الارشادات المناسبة",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'IBMPlexSansArabic',
+                          shadows: [Shadow(color: Colors.black45, blurRadius: 5)],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -173,30 +220,32 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
   Widget _buildSpilledBackground(Color color) {
     return Stack(
       children: [
-        // الطبقة العلوية الملونة (مسكوبة للأسفل)
         AnimatedContainer(
           duration: const Duration(milliseconds: 800),
           curve: Curves.easeInOut,
-          height: MediaQuery.of(context).size.height * 0.65, // تغطي 65% من الشاشة
+          height: MediaQuery.of(context).size.height * 0.65, 
           width: double.infinity,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                color, // اللون الغامق في الأعلى
+                color, 
                 color.withOpacity(0.8),
-                color.withOpacity(0.0), // يتلاشى في المنتصف
+                color.withOpacity(0.0), 
               ],
             ),
           ),
         ),
         
-        // الطبقة البيضاء السفلية (تصعد للأعلى لتندمج)
+        // التعديل 2: الطبقة البيضاء السفلية تتغير مساحتها ديناميكياً
         Align(
           alignment: Alignment.bottomCenter,
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.5,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 800),
+            curve: Curves.easeInOut,
+            // إذا كانت الإرشادات معروضة، يأخذ الربع (0.25)، وإلا يأخذ النصف (0.5)
+            height: MediaQuery.of(context).size.height * (_showInstructions ? 0.25 : 0.5),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
@@ -211,7 +260,6 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
           ),
         ),
 
-        // طبقة الضباب (Blur) لدمج الألوان بنعومة فائقة
         BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
           child: Container(color: Colors.transparent),
@@ -229,7 +277,6 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
         setState(() => _selectedIndex = index);
       },
       itemBuilder: (context, index) {
-        // حساب نسبة الحركة لعمل تأثير المروحة
         return AnimatedBuilder(
           animation: _pageController,
           builder: (context, child) {
@@ -239,17 +286,16 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
               value = (1 - (value.abs() * 0.3)).clamp(0.0, 1.0);
             }
             
-            // التدوير والحجم
             final double rotate = (index - (_pageController.position.haveDimensions ? _pageController.page! : _selectedIndex)) * 0.1;
             
             return Transform(
               transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.001) // perspective
-                ..rotateZ(rotate) // تدوير بسيط
-                ..scale(value), // تصغير العناصر البعيدة
+                ..setEntry(3, 2, 0.001) 
+                ..rotateZ(rotate) 
+                ..scale(value), 
               alignment: Alignment.center,
               child: Opacity(
-                opacity: value < 0.8 ? 0.5 : 1.0, // شفافة اذا لم تكن في الوسط
+                opacity: value < 0.8 ? 0.5 : 1.0, 
                 child: child,
               ),
             );
@@ -270,7 +316,7 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
               borderRadius: BorderRadius.circular(30),
               child: Image.asset(
                 _providers[index]['image'],
-                fit: BoxFit.cover, // الصورة تملأ البطاقة بالكامل
+                fit: BoxFit.cover, 
               ),
             ),
           ),
@@ -283,8 +329,8 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
   Widget _buildSlidingInstructions() {
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 800),
-      curve: Curves.fastOutSlowIn, // حركة ناعمة مثل أبل
-      top: _showInstructions ? 100 : MediaQuery.of(context).size.height, // تصعد من الأسفل
+      curve: Curves.fastOutSlowIn, 
+      top: _showInstructions ? 100 : MediaQuery.of(context).size.height, 
       left: 0,
       right: 0,
       bottom: 0,
@@ -296,16 +342,15 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              // النصوص (فقرات)
               ...(_providers[_selectedIndex]['instructions'] as List<String>).map((text) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 25),
                   child: Text(
                     text,
                     style: const TextStyle(
-                      color: Colors.white, // نص أبيض على الخلفية العشبية
+                      color: Colors.white, 
                       fontSize: 18,
-                      height: 1.6, // تباعد أسطر مريح للقراءة
+                      height: 1.6, 
                       fontWeight: FontWeight.w600,
                       fontFamily: 'IBMPlexSansArabic',
                     ),
@@ -315,18 +360,15 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
 
               const SizedBox(height: 20),
 
-              // صور التوضيح داخل الإطارات الخاصة
               if (_selectedIndex == 0) ...[
-                 // زين: صورة واحدة
-                 _buildFramedImage('assets/fonts/images/zain_exp.png'), // مثال، استبدلها بصورة توضيحية حقيقية
+                 _buildFramedImage('assets/fonts/images/zain_exp.png'), 
               ] else ...[
-                 // آسيا: صورتين
                  _buildFramedImage('assets/fonts/images/asiacell_exp.png'),
                  const SizedBox(height: 20),
                  _buildFramedImage('assets/fonts/images/asiacell_exp2.png'),
               ],
 
-              const SizedBox(height: 150), // مساحة إضافية في الأسفل عشان الزر ما يغطي الكلام
+              const SizedBox(height: 150), 
             ],
           ),
         ),
@@ -334,20 +376,19 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
     );
   }
 
-  // ويدجت الإطار الخاص بالصور (Double Border)
   Widget _buildFramedImage(String imagePath) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.black, // الإطار الخارجي الأسود
+        color: Colors.black, 
         borderRadius: BorderRadius.circular(15),
       ),
-      padding: const EdgeInsets.all(2), // سمك الإطار الأسود النحيف
+      padding: const EdgeInsets.all(2), 
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.transparent, // الفراغ الصغير
+          color: Colors.transparent, 
           borderRadius: BorderRadius.circular(13),
         ),
-        padding: const EdgeInsets.all(3), // الفراغ بين الأسود والصورة
+        padding: const EdgeInsets.all(3), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: Image.asset(imagePath, fit: BoxFit.cover),
@@ -365,29 +406,25 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
         height: 70,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(50),
-          // محاكاة المعدن السائل باستخدام تدرج لوني دقيق
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             stops: [0.0, 0.3, 0.45, 0.6, 1.0],
             colors: [
-              Color(0xFFFFFFFF),       // أبيض لامع (إضاءة)
-              Color(0xFFE0E0E0),       // رمادي فاتح
-              Color(0xFFF5F5F5),       // أبيض (لمعة الوسط)
-              Color(0xFFBDBDBD),       // رمادي داكن قليلاً
-              Color(0xFF9E9E9E),       // رمادي الظل
+              Color(0xFFFFFFFF),       
+              Color(0xFFE0E0E0),       
+              Color(0xFFF5F5F5),       
+              Color(0xFFBDBDBD),       
+              Color(0xFF9E9E9E),       
             ],
           ),
           boxShadow: [
-            // الظل الخارجي القوي لرفع الزر
             BoxShadow(
               color: Colors.black.withOpacity(0.3),
               offset: const Offset(5, 5),
               blurRadius: 15,
               spreadRadius: 1,
             ),
-            // محاكاة الظل الداخلي الأبيض (Inset Glow)
-            // بما أن فلاتر لا يدعم Inset Shadow مباشرة، نستخدم خدعة الظل الأبيض السالب
              BoxShadow(
               color: Colors.white.withOpacity(0.9),
               offset: const Offset(-2, -2),
@@ -395,7 +432,6 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
               spreadRadius: 0,
             ),
           ],
-          // الحدود المتغيرة (بيضاء من الأعلى، شفافة من الأسفل)
           border: Border.all(
             color: Colors.white.withOpacity(0.6),
             width: 1.5,
@@ -406,9 +442,9 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
             text,
             style: TextStyle(
               fontSize: 24,
-              fontFamily: 'IBMPlexSansArabic', // أو الخط Goldman حسب ملف CSS
+              fontFamily: 'IBMPlexSansArabic', 
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF454545), // لون النص الرمادي الغامق
+              color: const Color(0xFF454545), 
               shadows: [
                 Shadow(
                   color: Colors.white.withOpacity(0.8),
@@ -420,6 +456,58 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
           ),
         ),
       ),
+    );
+  }
+}
+
+// ==========================================
+// ويدجت مساعدة: اليد المتحركة للإيماءة
+// ==========================================
+class _AnimatedSwipeHand extends StatefulWidget {
+  const _AnimatedSwipeHand({Key? key}) : super(key: key);
+
+  @override
+  __AnimatedSwipeHandState createState() => __AnimatedSwipeHandState();
+}
+
+class __AnimatedSwipeHandState extends State<_AnimatedSwipeHand> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this, 
+      duration: const Duration(milliseconds: 1200)
+    )..repeat(reverse: false);
+    
+    // الحركة من اليمين (موجب) إلى اليسار (سالب)
+    _animation = Tween<double>(begin: 60.0, end: -60.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut)
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(_animation.value, 0),
+          child: Opacity(
+            // تتلاشى اليد تدريجياً كلما اتجهت لليسار لتوضيح نهاية السحب
+            opacity: 1.0 - (_controller.value * 0.8), 
+            child: const Icon(Icons.swipe_left_rounded, size: 70, color: Colors.white),
+          ),
+        );
+      },
     );
   }
 }
