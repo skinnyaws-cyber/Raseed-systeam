@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'dart:io' show Platform;
-import 'dart:async'; // التعديل: استيراد ضروري للعداد التنازلي
+import 'dart:async'; 
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -45,7 +45,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _commission = 0;
   bool _isProcessing = false;
   bool _isInvalidAmount = false;
-  bool _isAmountTooHigh = false; // التعديل: التحقق من تجاوز الـ 50 الف للعملية الواحدة
+  bool _isAmountTooHigh = false; 
   
   int _dailyLimit = 50000;
   int _todayTransferredAmount = 0;
@@ -66,7 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _randomMemoji = math.Random().nextInt(7) + 1;
     _fetchUserData();
     _calculateTodayTotal();
-    _startMidnightTimer(); // التعديل: بدء العداد التنازلي
+    _startMidnightTimer();
   }
 
   void _fetchUserData() async {
@@ -94,7 +94,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .get();
       int total = 0;
       for (var doc in query.docs) {
-        // التعديل: الحساب الدقيق بناءً على حالة النجاح فقط
         if (doc.data()['status'] == 'successful') {
           total += (doc.data()['amount'] as num).toInt();
         }
@@ -133,7 +132,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  // التعديل: دالة التحقق الصارمة من البادئة
   void _validatePrefixStrict(String inputNumber) {
     if (inputNumber.isEmpty) {
       _isSimMatch = true;
@@ -299,6 +297,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  // التعديل 1: تقييد حقل الرصيد (الحد الأدنى 2000، ومضاعفات الألف)
   void _calculateAmount(String value) {
     if (value.isEmpty) { 
       setState(() { 
@@ -311,8 +310,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     int amount = int.tryParse(value.replaceAll(',', '')) ?? 0;
     setState(() {
-      _isInvalidAmount = (amount >= 1000 && amount % 1000 != 0);
-      _isAmountTooHigh = (amount > 50000); // منع إدخال قيمة تتجاوز 50 الف للطلب الواحد
+      // تعديل الشرط ليصبح: إما أقل من 2000 أو ليس من مضاعفات الـ 1000
+      _isInvalidAmount = (amount < 2000 || amount % 1000 != 0); 
+      _isAmountTooHigh = (amount > 50000); 
 
       if (amount < 2000) { 
         _commission = 0; _receiveAmount = 0; 
@@ -369,7 +369,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ديالوج القفل عند تجاوز السقف
   void _showLockedDialog() {
     showDialog(
       context: context,
@@ -382,9 +381,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text("تم تجاوز السقف", style: TextStyle(fontFamily: 'IBMPlexSansArabic', fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
-        content: Text(
+        content: const Text(
           "لقد تجاوزت السقف اليومي المسموح به لتحويل الرصيد وهو 50,000 د.ع.\n\nيرجى الانتظار حتى انتهاء العد التنازلي لتتمكن من التحويل مجدداً.",
-          style: const TextStyle(fontFamily: 'IBMPlexSansArabic', height: 1.5),
+          style: TextStyle(fontFamily: 'IBMPlexSansArabic', height: 1.5),
         ),
         actions: [
           ElevatedButton(
@@ -435,7 +434,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Expanded(child: _buildNetworkCard('آسيا سيل', 'Asiacell', 'assets/fonts/images/asiacell_logo.png', const Color(0xFFEE2737))),
                       const SizedBox(width: 15),
-                      Expanded(child: _buildNetworkCard('زين العراق', 'Zain IQ', 'assets/fonts/images/zain_logo.png', const Color(0xFF00B2A9))),
+                      // التعديل 2: تغيير لون بطاقة زين إلى Night Blue (0xFF192A56)
+                      Expanded(child: _buildNetworkCard('زين العراق', 'Zain IQ', 'assets/fonts/images/zain_logo.png', const Color(0xFF192A56))),
                     ],
                   ),
                   const SizedBox(height: 40),
@@ -599,7 +599,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         CircleAvatar(
                           radius: 32, 
                           backgroundColor: Colors.transparent, 
-                          backgroundImage: AssetImage('assets/fonts/images/memoji_1.png'), 
+                          backgroundImage: AssetImage('assets/fonts/images/memoji_$_randomMemoji.png'), 
                         ),
                         const SizedBox(width: 15),
                         Text(
@@ -639,7 +639,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // التعديل: تكبير مستطيل الإرشادات ليكون مريحاً وعرضياً أكثر
   Widget _buildMainCard() {
     return Align(
       alignment: Alignment.center,
@@ -648,7 +647,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const TransferInstructionsScreen()));
         },
         child: Container(
-          width: MediaQuery.of(context).size.width * 0.85, // أخذ 85% من عرض الشاشة ليكون مريحاً
+          width: MediaQuery.of(context).size.width * 0.85, 
           padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
           decoration: BoxDecoration(
             color: Colors.white, 
@@ -666,7 +665,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               const Text('إرشادات التحويل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, fontFamily: 'IBMPlexSansArabic', color: Color(0xFF2F3542))),
               const SizedBox(width: 20),
-              Image.asset('assets/fonts/images/info.png', width: 35, height: 35), // تكبير الصورة قليلاً
+              Image.asset('assets/fonts/images/info.png', width: 35, height: 35), 
             ],
           ),
         ),
@@ -680,7 +679,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return GestureDetector(
       onTap: () {
         if (isLocked) {
-          _showLockedDialog(); // التعديل: إظهار رسالة القفل
+          _showLockedDialog(); 
         } else {
           _showConversionSheet(name, color);
         }
@@ -713,17 +712,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: color,
                         borderRadius: BorderRadius.circular(10)
                       ),
-                      child: const Text('تحويل', style: TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'IBMPlexSansArabic')),
+                      // التعديل 3: إضافة أيقونة التحويل بجانب كلمة تحويل
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text('تحويل', style: TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'IBMPlexSansArabic', fontWeight: FontWeight.bold)),
+                          SizedBox(width: 4),
+                          Icon(Icons.sync_alt_rounded, color: Colors.white, size: 14),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              // التعديل: طبقة القفل والعداد التنازلي
               if (isLocked)
                 Positioned.fill(
                   child: Container(
-                    color: Colors.black.withOpacity(0.65), // طبقة داكنة
+                    color: Colors.black.withOpacity(0.65), 
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -828,7 +834,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       helperStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                     ),
                     onChanged: (val) {
-                      // التعديل: تفعيل الفحص اللحظي والدقيق
                       _validatePrefixStrict(val);
                       setModalState(() {});
                     },
@@ -849,10 +854,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildFieldLabel('قيمة الرصيد (بالآلاف):'),
                   TextField(
                     controller: _amountController,
+                    // التعديل 1: رسالة الخطأ توضح الحد الأدنى والآلاف الكاملة
                     decoration: _inputDecoration('مثلاً 5000').copyWith(
                       errorText: _isAmountTooHigh
                           ? 'الحد الأقصى للعملية هو 50,000 د.ع'
-                          : (_isInvalidAmount ? 'يرجى إدخال آلاف كاملة' : null),
+                          : (_isInvalidAmount ? 'الحد الأدنى 2000 ويجب أن يكون بآلاف كاملة' : null),
                       errorStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)
                     ),
                     keyboardType: TextInputType.number,
@@ -876,7 +882,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   const SizedBox(height: 25),
                   
-                  // التعديل: الزر المعدني الجديد
                   Builder(
                     builder: (context) {
                       bool isQiCardMissing = _receivingCard == 'QiCard' && (_hiddenQiNumber == null || _hiddenQiNumber!.isEmpty);
@@ -885,6 +890,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       return _LiquidSilverButton(
                         text: "تأكيد الطلب",
                         isLoading: _isProcessing,
+                        // التعديل 1: في حال لم يتحقق الشرط (canConfirm = false)، سيصبح الزر شفافاً وغير فعال
                         onPressed: canConfirm ? () => _processOrder(setModalState) : null,
                       );
                     }
@@ -942,7 +948,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 // ==========================================
-// التعديل: ويدجت الزر المعدني التفاعلي ثلاثي الأبعاد
+// ويدجت الزر المعدني التفاعلي ثلاثي الأبعاد
 // ==========================================
 class _LiquidSilverButton extends StatefulWidget {
   final String text;
@@ -973,79 +979,81 @@ class _LiquidSilverButtonState extends State<_LiquidSilverButton> {
         widget.onPressed!();
       },
       onTapCancel: isDisabled ? null : () => setState(() => _isPressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: double.infinity,
-        height: 60,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            stops: [0.0, 0.3, 0.45, 0.6, 1.0],
-            colors: [
-              Color(0xFFFFFFFF),       // أبيض لامع (إضاءة)
-              Color(0xFFE0E0E0),       // رمادي فاتح
-              Color(0xFFF5F5F5),       // أبيض (لمعة الوسط)
-              Color(0xFFBDBDBD),       // رمادي داكن قليلاً
-              Color(0xFF9E9E9E),       // رمادي الظل
-            ],
+      // التعديل 1 (تكملة): تغليف الزر بطبقة شفافية للنزول بقيمتها (Opacity) إذا كان معطلاً
+      child: Opacity(
+        opacity: isDisabled ? 0.4 : 1.0, // جعل الزر شفافاً بنسبة 40% عند الخطأ في الإدخال
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: double.infinity,
+          height: 60,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              stops: [0.0, 0.3, 0.45, 0.6, 1.0],
+              colors: [
+                Color(0xFFFFFFFF),       
+                Color(0xFFE0E0E0),       
+                Color(0xFFF5F5F5),       
+                Color(0xFFBDBDBD),       
+                Color(0xFF9E9E9E),       
+              ],
+            ),
+            boxShadow: _isPressed || isDisabled
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      offset: const Offset(2, 2),
+                      blurRadius: 2,
+                      spreadRadius: -1,
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.9),
+                      offset: const Offset(-2, -2),
+                      blurRadius: 2,
+                      spreadRadius: -1,
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      offset: const Offset(5, 5),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.9),
+                      offset: const Offset(-2, -2),
+                      blurRadius: 5,
+                      spreadRadius: 0,
+                    ),
+                  ],
+            border: Border.all(
+              color: Colors.white.withOpacity(0.6),
+              width: 1.5,
+            ),
           ),
-          boxShadow: _isPressed || isDisabled
-              ? [
-                  // حالة مقعرة (مضغوط للداخل)
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    offset: const Offset(2, 2),
-                    blurRadius: 2,
-                    spreadRadius: -1,
+          child: Center(
+            child: widget.isLoading
+                ? const CircularProgressIndicator(color: Color(0xFF454545))
+                : Text(
+                    widget.text,
+                    style: TextStyle(
+                      fontSize: _isPressed ? 17 : 18, 
+                      fontFamily: 'IBMPlexSansArabic',
+                      fontWeight: FontWeight.bold,
+                      color: isDisabled ? Colors.grey : const Color(0xFF454545),
+                      shadows: _isPressed ? null : [ 
+                        Shadow(
+                          color: Colors.white.withOpacity(0.8),
+                          offset: const Offset(1, 1),
+                          blurRadius: 1,
+                        ),
+                      ],
+                    ),
                   ),
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.9),
-                    offset: const Offset(-2, -2),
-                    blurRadius: 2,
-                    spreadRadius: -1,
-                  ),
-                ]
-              : [
-                  // حالة محدبة (منتفخ للخارج)
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    offset: const Offset(5, 5),
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                  ),
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.9),
-                    offset: const Offset(-2, -2),
-                    blurRadius: 5,
-                    spreadRadius: 0,
-                  ),
-                ],
-          border: Border.all(
-            color: Colors.white.withOpacity(0.6),
-            width: 1.5,
           ),
-        ),
-        child: Center(
-          child: widget.isLoading
-              ? const CircularProgressIndicator(color: Color(0xFF454545))
-              : Text(
-                  widget.text,
-                  style: TextStyle(
-                    fontSize: _isPressed ? 17 : 18, // النص يصغر قليلاً ليعطي إيحاء الدخول للداخل
-                    fontFamily: 'IBMPlexSansArabic',
-                    fontWeight: FontWeight.bold,
-                    color: isDisabled ? Colors.grey : const Color(0xFF454545),
-                    shadows: _isPressed ? null : [ // الظل الداخلي للنص يختفي عند الضغط
-                      Shadow(
-                        color: Colors.white.withOpacity(0.8),
-                        offset: const Offset(1, 1),
-                        blurRadius: 1,
-                      ),
-                    ],
-                  ),
-                ),
         ),
       ),
     );
