@@ -599,7 +599,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         CircleAvatar(
                           radius: 32, 
                           backgroundColor: Colors.transparent, 
-                          backgroundImage: AssetImage('assets/fonts/images/memoji_$_randomMemoji.png'), 
+                          backgroundImage: AssetImage('assets/fonts/images/memoji_1.png'), 
                         ),
                         const SizedBox(width: 15),
                         Text(
