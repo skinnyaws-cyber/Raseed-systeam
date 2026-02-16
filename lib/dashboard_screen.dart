@@ -172,20 +172,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  String? encodeQueryParameters(Map<String, String> params) {
-    return params.entries
-        .map((MapEntry<String, String> e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-        .join('&');
-  }
-
+  // التعديل الأهم: إعادة كتابة دالة الإرسال لتتعرف على النظام وتمنع دمج الرقم مع النص
   Future<void> _executeSMS(String amount) async {
     String cleanAmount = amount.replaceAll(',', '');
     String message = "$_ourZainNumber $cleanAmount";
-    final Uri smsLaunchUri = Uri(scheme: 'sms', path: '21112', query: encodeQueryParameters(<String, String>{'body': message}));
+    
+    String uriString;
+    // تخصيص الرابط بناءً على نظام التشغيل لضمان عدم حدوث خطأ دمج الـ Body مع رقم المستلم
+    if (Platform.isIOS) {
+      uriString = 'sms:21112&body=${Uri.encodeComponent(message)}';
+    } else {
+      uriString = 'sms:21112?body=${Uri.encodeComponent(message)}';
+    }
+
+    final Uri smsLaunchUri = Uri.parse(uriString);
+
     if (await canLaunchUrl(smsLaunchUri)) {
       await launchUrl(smsLaunchUri);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("لا يمكن فتح تطبيق الرسائل")));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("لا يمكن فتح تطبيق الرسائل")));
+      }
     }
   }
 
@@ -297,7 +304,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // التعديل 1: تقييد حقل الرصيد (الحد الأدنى 2000، ومضاعفات الألف)
   void _calculateAmount(String value) {
     if (value.isEmpty) { 
       setState(() { 
@@ -310,7 +316,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     int amount = int.tryParse(value.replaceAll(',', '')) ?? 0;
     setState(() {
-      // تعديل الشرط ليصبح: إما أقل من 2000 أو ليس من مضاعفات الـ 1000
       _isInvalidAmount = (amount < 2000 || amount % 1000 != 0); 
       _isAmountTooHigh = (amount > 50000); 
 
@@ -434,7 +439,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Expanded(child: _buildNetworkCard('آسيا سيل', 'Asiacell', 'assets/fonts/images/asiacell_logo.png', const Color(0xFFEE2737))),
                       const SizedBox(width: 15),
-                      // التعديل 2: تغيير لون بطاقة زين إلى Night Blue (0xFF192A56)
+                      // لون بطاقة زين Night Blue
                       Expanded(child: _buildNetworkCard('زين العراق', 'Zain IQ', 'assets/fonts/images/zain_logo.png', const Color(0xFF192A56))),
                     ],
                   ),
@@ -712,7 +717,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: color,
                         borderRadius: BorderRadius.circular(10)
                       ),
-                      // التعديل 3: إضافة أيقونة التحويل بجانب كلمة تحويل
+                      // إضافة أيقونة التحويل
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
@@ -854,7 +859,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildFieldLabel('قيمة الرصيد (بالآلاف):'),
                   TextField(
                     controller: _amountController,
-                    // التعديل 1: رسالة الخطأ توضح الحد الأدنى والآلاف الكاملة
                     decoration: _inputDecoration('مثلاً 5000').copyWith(
                       errorText: _isAmountTooHigh
                           ? 'الحد الأقصى للعملية هو 50,000 د.ع'
@@ -890,7 +894,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       return _LiquidSilverButton(
                         text: "تأكيد الطلب",
                         isLoading: _isProcessing,
-                        // التعديل 1: في حال لم يتحقق الشرط (canConfirm = false)، سيصبح الزر شفافاً وغير فعال
                         onPressed: canConfirm ? () => _processOrder(setModalState) : null,
                       );
                     }
@@ -979,9 +982,8 @@ class _LiquidSilverButtonState extends State<_LiquidSilverButton> {
         widget.onPressed!();
       },
       onTapCancel: isDisabled ? null : () => setState(() => _isPressed = false),
-      // التعديل 1 (تكملة): تغليف الزر بطبقة شفافية للنزول بقيمتها (Opacity) إذا كان معطلاً
       child: Opacity(
-        opacity: isDisabled ? 0.4 : 1.0, // جعل الزر شفافاً بنسبة 40% عند الخطأ في الإدخال
+        opacity: isDisabled ? 0.4 : 1.0, 
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           width: double.infinity,
