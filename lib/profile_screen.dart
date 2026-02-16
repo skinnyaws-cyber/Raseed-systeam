@@ -48,6 +48,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (!userSnapshot.hasData) return const Center(child: CircularProgressIndicator());
             
             var userData = userSnapshot.data!.data() as Map<String, dynamic>;
+            
             String name = userData['full_name'] ?? "مستخدم رصيد";
             String phone = userData['phone_number'] ?? "---";
             String qiNumber = userData['qi_number'] ?? ""; 
@@ -100,16 +101,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       stream: FirebaseFirestore.instance
           .collection('orders')
           .where('userId', isEqualTo: currentUser?.uid)
-          .where('status', isEqualTo: 'success')
+          // التعديل 1: تغيير الحالة إلى successful كما هي في قاعدة البيانات
+          .where('status', isEqualTo: 'successful')
           .snapshots(),
       builder: (context, snapshot) {
         int totalReceived = 0;
         if (snapshot.hasData) {
           for (var doc in snapshot.data!.docs) {
             var data = doc.data() as Map<String, dynamic>;
-            int amount = data['amount'] ?? 0;
-            int commission = data['commission'] ?? 0;
-            totalReceived += (amount - commission);
+            // التعديل 2: جلب قيمة payout_amount مباشرة وجمعها
+            int payoutAmount = (data['payout_amount'] as num?)?.toInt() ?? 0;
+            totalReceived += payoutAmount;
           }
         }
 
@@ -210,7 +212,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onPressed: () async {
             await FirebaseAuth.instance.signOut();
             if (context.mounted) {
-              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (c) => const LoginScreen()), (route) => false);
+               Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (c) => const LoginScreen()), (route) => false);
             }
           },
           icon: const Icon(Icons.logout, color: Colors.red),
@@ -254,7 +256,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             // زر المساعدة
             Align(
-              alignment: Alignment.centerRight,
+               alignment: Alignment.centerRight,
               child: TextButton.icon(
                 icon: const Icon(Icons.help_outline, size: 18, color: Colors.blue),
                 label: const Text("أين أجد الرقم؟ اضغط للتوضيح", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
@@ -453,7 +455,7 @@ class _Animated3DCardState extends State<Animated3DCard> with SingleTickerProvid
       duration: const Duration(seconds: 4),
       vsync: this,
     )..repeat(reverse: true);
-    
+
     _animation = Tween<double>(begin: -0.06, end: 0.06).animate(CurvedAnimation(
       parent: _controller,
       curve: Curves.easeInOut,
