@@ -830,7 +830,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   TextFormField(
                     controller: _senderPhoneController,
                     keyboardType: TextInputType.phone,
-                    decoration: _inputDecoration('أدخل رقم شريحته الحالية').copyWith(
+                    decoration: _inputDecoration('أدخل رقم شريحتك الحالية').copyWith(
                       fillColor: Colors.blueGrey.shade50,
                       suffixIcon: _senderPhoneController.text.isNotEmpty 
                         ? Icon(_isSimMatch ? Icons.check_circle : Icons.error, color: _isSimMatch ? Colors.green : Colors.red, size: 18) 
@@ -849,7 +849,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: Text(
-                        'تحذير : يجب ادخال رقم SIM Card الذي يحتوي على الرصيد الفعلي وتأكد أن الرقم مطابق للـSIM card المدخل في هاتفك',
+                        'تحذير : يجب ادخال الرقم الذي يحتوي على الرصيد الفعلي وتأكد أن الرقم مطابق للشريحة المدخله في هاتفك',
                         style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic'),
                       ),
                     ),

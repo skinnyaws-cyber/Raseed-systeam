@@ -33,7 +33,7 @@ class SuccessfulOperationsScreen extends StatelessWidget {
               stream: FirebaseFirestore.instance
                   .collection('orders')
                   .where('userId', isEqualTo: currentUserId)
-                  .where('status', isEqualTo: 'success')
+                  .where('status', isEqualTo: 'successful')
                   .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
