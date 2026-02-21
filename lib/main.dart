@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:upgrader/upgrader.dart'; // إضافة مكتبة التحديث الإجباري
 import 'firebase_options.dart';
 
 // استيراد الشاشات
-import 'splash_screen.dart'; // تمت الإضافة
+import 'splash_screen.dart'; 
 import 'onboarding_screen.dart';
 import 'signup_screen.dart';
 import 'dashboard_screen.dart';
@@ -37,8 +38,16 @@ class RaseedApp extends StatelessWidget {
         fontFamily: 'IBMPlexSansArabic',
         useMaterial3: true,
       ),
-      // التعديل: البداية من الشاشة الافتتاحية بدلاً من AuthWrapper
-      home: const SplashScreen(),
+      // صمام الأمان: إحاطة الشاشة الأولى (SplashScreen) بنافذة التحديث الإجبارية
+      home: UpgradeAlert(
+        upgrader: Upgrader(
+          showIgnore: false, // إخفاء زر التجاهل
+          showLater: false,  // إخفاء زر التحديث لاحقاً
+          canDismissDialog: false, // منع المستخدم من الخروج من النافذة
+          messages: UpgraderMessages(code: 'ar'), // واجهة باللغة العربية
+        ),
+        child: const SplashScreen(),
+      ),
       
       routes: {
         '/onboarding': (context) => const OnboardingScreen(),
