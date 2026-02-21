@@ -25,6 +25,7 @@ dependencies:
   flutter_phone_direct_caller: ^2.1.1
   google_mobile_ads: ^7.0.0
   shared_preferences: ^2.2.2
+  upgrader: ^12.5.0
 
 dev_dependencies:
   flutter_test:
