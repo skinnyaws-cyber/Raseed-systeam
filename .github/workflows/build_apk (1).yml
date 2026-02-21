@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK (Release)
 
 on:
   # يعمل هذا الملف عند الضغط اليدوي على الزر
@@ -6,14 +6,14 @@ on:
   
 jobs:
   build:
-    name: Build APK
+    name: Build Optimized APK
     runs-on: ubuntu-latest
 
     steps:
     # 1. جلب الكود
     - uses: actions/checkout@v3
 
-    # 2. إعداد بيئة الجافا (ضرورية للأندرويد)
+    # 2. إعداد بيئة الجافا
     - name: Setup Java
       uses: actions/setup-java@v3
       with:
@@ -26,18 +26,22 @@ jobs:
       with:
         channel: 'stable'
 
-    # 4. تحميل المكتبات
+    # 4. تنظيف عميق لبيئة العمل (لضمان خلو النسخة من الشوائب)
+    - name: Deep Clean
+      run: flutter clean
+
+    # 5. تحميل المكتبات
     - name: Get Dependencies
       run: flutter pub get
 
-    # 5. بناء ملف APK (نسخة تجريبية)
-    # ملاحظة: نستخدم --debug لأننا لم نقم بإعداد توقيع التطبيق (Keystore) بعد
-    - name: Build APK
-      run: flutter build apk --debug
+    # 6. بناء ملف APK (نسخة الإنتاج الخفيفة والمقسمة)
+    - name: Build Split APKs
+      run: flutter build apk --release --split-per-abi
 
-    # 6. رفع الملف الناتج لكي تتمكن من تحميله
-    - name: Upload APK
+    # 7. رفع الملفات الناتجة لكي تتمكن من تحميلها
+    - name: Upload APKs
       uses: actions/upload-artifact@v4
       with:
-        name: raseed-app-debug
-        path: build/app/outputs/flutter-apk/app-debug.apk
+        name: raseed-app-release-apks
+        # سيقوم بجلب جميع النسخ المقسمة التي تم بناؤها
+        path: build/app/outputs/flutter-apk/app-*-release.apk
