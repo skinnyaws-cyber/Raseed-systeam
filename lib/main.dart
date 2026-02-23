@@ -40,12 +40,15 @@ class RaseedApp extends StatelessWidget {
       ),
       // صمام الأمان: إحاطة الشاشة الأولى (SplashScreen) بنافذة التحديث الإجبارية
       home: UpgradeAlert(
+        // الخصائص البرمجية
         upgrader: Upgrader(
-          showIgnore: false, // إخفاء زر التجاهل
-          showLater: false,  // إخفاء زر التحديث لاحقاً
-          canDismissDialog: false, // منع المستخدم من الخروج من النافذة
           messages: UpgraderMessages(code: 'ar'), // واجهة باللغة العربية
         ),
+        // خصائص التحكم بالواجهة (تم نقلها إلى هنا في الإصدارات الحديثة)
+        showIgnore: false, // إخفاء زر التجاهل
+        showLater: false,  // إخفاء زر التحديث لاحقاً
+        showReleaseNotes: false, // إخفاء ملاحظات الإصدار (لجعل النافذة أصغر وأجمل)
+        barrierDismissible: false, // منع المستخدم من الخروج من النافذة بالضغط خارجها
         child: const SplashScreen(),
       ),
       

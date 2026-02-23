@@ -37,7 +37,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _transferType = 'direct'; 
   String? _telecomProvider;
   String? _receivingCard;
-
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _senderPhoneController = TextEditingController();
 
@@ -49,12 +48,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   
   int _dailyLimit = 50000;
   int _todayTransferredAmount = 0;
-  
   bool _isCheckingSim = false;
   bool _isSimMatch = true;
   String _simErrorMsg = "";
   
-  final String _ourZainNumber = "07800000000"; 
+  final String _ourZainNumber = "07800000000";
   final String _ourAsiaNumber = "07700000000"; 
 
   Timer? _midnightTimer;
@@ -141,7 +139,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     bool isValid = true;
     String msg = "";
-
     if (_telecomProvider == 'Zain' && !(inputNumber.startsWith('078') || inputNumber.startsWith('079'))) {
       isValid = false;
       msg = "رقم زين يجب أن يبدأ بـ 078 أو 079";
@@ -172,13 +169,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // التعديل الأهم: إعادة كتابة دالة الإرسال لتتعرف على النظام وتمنع دمج الرقم مع النص
   Future<void> _executeSMS(String amount) async {
     String cleanAmount = amount.replaceAll(',', '');
     String message = "$_ourZainNumber $cleanAmount";
     
     String uriString;
-    // تخصيص الرابط بناءً على نظام التشغيل لضمان عدم حدوث خطأ دمج الـ Body مع رقم المستلم
     if (Platform.isIOS) {
       uriString = 'sms:21112&body=${Uri.encodeComponent(message)}';
     } else {
@@ -186,7 +181,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     final Uri smsLaunchUri = Uri.parse(uriString);
-
     if (await canLaunchUrl(smsLaunchUri)) {
       await launchUrl(smsLaunchUri);
     } else {
@@ -264,7 +258,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       var userSnapshot = await FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).get();
       String userName = userSnapshot.data()?['full_name'] ?? "مستخدم";
-
+      
       await FirebaseFirestore.instance.collection('orders').add({
         'userId': currentUser?.uid,
         'userFullName': userName,
@@ -282,6 +276,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         'timestamp': FieldValue.serverTimestamp(),
         'deviceType': kIsWeb ? 'Web' : (Platform.isAndroid ? 'Android' : 'iOS'),
       });
+
+      // --- المزامنة الصحيحة مع واجهة الخصومات: تصفير النقاط ---
+      if (userPoints == 50) {
+        await FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).update({
+          'points': 0
+        });
+        if (mounted) {
+          setState(() {
+            userPoints = 0;
+          });
+        }
+      }
 
       setModalState(() => _isProcessing = false);
 
@@ -322,7 +328,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (amount < 2000) { 
         _commission = 0; _receiveAmount = 0; 
       } else {
-        if (userPoints >= 50) { 
+        if (userPoints == 50) { // التعديل: إعفاء فقط عند الوصول لـ 50 نقطة تماماً
           _commission = 0; 
         } else if (amount >= 10000) {
           _commission = ((amount * 0.10) / 1000).round() * 1000;
@@ -431,7 +437,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   const SizedBox(height: 30),
                   _buildMainCard(), 
-                  
                   const SizedBox(height: 40),
                   const Text('حول رصيدك الآن', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic')),
                   const SizedBox(height: 20),
@@ -439,13 +444,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Expanded(child: _buildNetworkCard('آسيا سيل', 'Asiacell', 'assets/fonts/images/asiacell_logo.png', const Color(0xFFEE2737))),
                       const SizedBox(width: 15),
-                      // لون بطاقة زين Night Blue
                       Expanded(child: _buildNetworkCard('زين العراق', 'Zain IQ', 'assets/fonts/images/zain_logo.png', const Color(0xFF192A56))),
                     ],
                   ),
                   const SizedBox(height: 40),
                   _buildRecentTransactionsHeader(),
-                  
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance.collection('orders')
                         .where('userId', isEqualTo: currentUser?.uid)
@@ -544,7 +547,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             return StreamBuilder<DocumentSnapshot>(
                               stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
                               builder: (context, userSnapshot) {
-                                
                                 bool showRedDot = false;
                                 if (notificationSnapshot.hasData && notificationSnapshot.data!.docs.isNotEmpty && 
                                     userSnapshot.hasData && userSnapshot.data!.data() != null) {
@@ -554,7 +556,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                                   var userData = userSnapshot.data!.data() as Map<String, dynamic>;
                                   Timestamp? lastCheckTime = userData['last_notification_check'];
-
                                   if (notifTime != null) {
                                     if (lastCheckTime == null) {
                                       showRedDot = true;
@@ -563,7 +564,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     }
                                   }
                                 }
-                                                    
+                                  
                                 return Stack(
                                   children: [
                                     Container(
@@ -680,7 +681,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildNetworkCard(String name, String sub, String imagePath, Color color) { 
     bool isLocked = _todayTransferredAmount >= _dailyLimit;
-
     return GestureDetector(
       onTap: () {
         if (isLocked) {
@@ -717,7 +717,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: color,
                         borderRadius: BorderRadius.circular(10)
                       ),
-                      // إضافة أيقونة التحويل
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
@@ -804,8 +803,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildFieldLabel('بطاقة الاستلام:'),
                   DropdownButtonFormField<String>(
                     decoration: _inputDecoration('اختر البطاقة').copyWith(
+                      // التعديل: تغيير نص التحذير ليطابق المطلوب بالضبط
                       errorText: (_receivingCard == 'QiCard' && (_hiddenQiNumber == null || _hiddenQiNumber!.isEmpty))
-                          ? "يرجى إضافة رقم البطاقة من الملف الشخصي"
+                          ? "يرجى ادخال رقم البطاقة من قائمة حسابي"
                           : null,
                     ),
                     items: [
@@ -850,7 +850,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       alignment: Alignment.centerRight,
                       child: Text(
                         'تحذير : يجب ادخال الرقم الذي يحتوي على الرصيد الفعلي وتأكد أن الرقم مطابق للشريحة المدخله في هاتفك',
-                        style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic'),
+                        // التعديل: تغيير اللون إلى البرتقالي
+                        style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic'),
                       ),
                     ),
                   ),
@@ -867,8 +868,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     keyboardType: TextInputType.number,
                     onChanged: (val) {
-                       _calculateAmount(val);
-                       setModalState(() {});
+                        _calculateAmount(val);
+                        setModalState(() {});
                     },
                   ),
 
@@ -890,10 +891,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     builder: (context) {
                       bool isQiCardMissing = _receivingCard == 'QiCard' && (_hiddenQiNumber == null || _hiddenQiNumber!.isEmpty);
                       bool canConfirm = !isQiCardMissing && !_isInvalidAmount && !_isAmountTooHigh && _amountController.text.isNotEmpty && _senderPhoneController.text.isNotEmpty && _isSimMatch;
-                      
                       return _LiquidSilverButton(
                         text: "تأكيد الطلب",
                         isLoading: _isProcessing,
+                        // لن يتم تفعيل الزر إذا كانت بيانات البطاقة مفقودة
                         onPressed: canConfirm ? () => _processOrder(setModalState) : null,
                       );
                     }
@@ -963,18 +964,17 @@ class _LiquidSilverButton extends StatefulWidget {
     this.onPressed,
     this.isLoading = false,
   });
-
+  
   @override
   State<_LiquidSilverButton> createState() => _LiquidSilverButtonState();
 }
 
 class _LiquidSilverButtonState extends State<_LiquidSilverButton> {
   bool _isPressed = false;
-
+  
   @override
   Widget build(BuildContext context) {
     bool isDisabled = widget.onPressed == null || widget.isLoading;
-
     return GestureDetector(
       onTapDown: isDisabled ? null : (_) => setState(() => _isPressed = true),
       onTapUp: isDisabled ? null : (_) {

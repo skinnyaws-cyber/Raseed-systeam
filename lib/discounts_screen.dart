@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:ui'; // مطلوب لتأثير الزجاج (Glassmorphism)
 
 class DiscountsScreen extends StatefulWidget {
   const DiscountsScreen({super.key});
@@ -10,27 +11,40 @@ class DiscountsScreen extends StatefulWidget {
   State<DiscountsScreen> createState() => _DiscountsScreenState();
 }
 
-class _DiscountsScreenState extends State<DiscountsScreen> {
+class _DiscountsScreenState extends State<DiscountsScreen> with SingleTickerProviderStateMixin {
   final Color emeraldColor = const Color(0xFF50878C);
-  
-  // متغيرات الإعلان
+  final Color neonGreen = const Color(0xFFCCFF00); // لون ملفت للأزرار
+  final Color darkGrey = const Color(0xFF2F3542);
+
   RewardedAd? _rewardedAd;
   bool _isAdLoaded = false;
-  
-  // معرف الوحدة الإعلانية الخاص بك
-  // ملاحظة: أثناء التطوير، جوجل تنصح باستخدام معرف الاختبار لتجنب الحظر
-  // لكن تم وضع معرفك الخاص بناءً على طلبك
-  final String _adUnitId = 'ca-app-pub-7534144177667566/9634851744';
+  bool _isAdShowing = false;
 
-  final int targetPoints = 50; // الهدف المطلوب
+  // معرف الوحدة الإعلانية الخاص بك (تم الحفاظ عليه بدقة كما طلبت)
+  final String _adUnitId = 'ca-app-pub-7534144177667566/9634851744';
+  
+  final int targetPoints = 50; // الحد الأقصى والمطلوب حصراً
+
+  // متحكم الحركة لزر الإعلان (لجعله ينبض)
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
     _loadRewardedAd();
+
+    // إعداد حركة النبض للزر
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+    
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
   }
 
-  // دالة تحميل الإعلان
   void _loadRewardedAd() {
     RewardedAd.load(
       adUnitId: _adUnitId,
@@ -43,16 +57,16 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
           });
           debugPrint('تم تحميل الإعلان بنجاح');
           
-          // إعداد كول باك عند إغلاق الإعلان لتحميل واحد جديد
           ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdShowedFullScreenContent: (ad) => _isAdShowing = true,
             onAdDismissedFullScreenContent: (ad) {
+              _isAdShowing = false;
               ad.dispose();
-              setState(() {
-                _isAdLoaded = false;
-              });
-              _loadRewardedAd(); // تحميل إعلان تالي
+              setState(() => _isAdLoaded = false);
+              _loadRewardedAd(); // تحميل إعلان جديد للمرة القادمة
             },
             onAdFailedToShowFullScreenContent: (ad, err) {
+              _isAdShowing = false;
               ad.dispose();
               _loadRewardedAd();
             },
@@ -60,31 +74,29 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
         },
         onAdFailedToLoad: (error) {
           debugPrint('فشل تحميل الإعلان: ${error.message}');
-          setState(() {
-            _isAdLoaded = false;
-          });
+          setState(() => _isAdLoaded = false);
         },
       ),
     );
   }
 
-  // دالة عرض الإعلان ومنح المكافأة
   void _showAdAndReward() {
-    if (_rewardedAd != null) {
+    if (_rewardedAd != null && !_isAdShowing) {
       _rewardedAd!.show(
         onUserEarnedReward: (AdWithoutView ad, RewardItem rewardItem) {
-          // لن يتم تنفيذ هذا الكود إلا إذا شاهد المستخدم الإعلان للنهاية
-          _addPointsToUser();
+          _addPointsToUser(); // إضافة النقاط فقط إذا شاهد الإعلان
         },
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('جاري تحميل الإعلان، يرجى الانتظار لحظة...')),
+        SnackBar(
+          content: const Text('جاري تجهيز الإعلان، يرجى المحاولة بعد قليل...', style: TextStyle(fontFamily: 'IBMPlexSansArabic')),
+          backgroundColor: darkGrey,
+        ),
       );
     }
   }
 
-  // إضافة النقاط لقاعدة البيانات
   Future<void> _addPointsToUser() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -93,18 +105,22 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
         
         await FirebaseFirestore.instance.runTransaction((transaction) async {
           final snapshot = await transaction.get(userRef);
+          int currentPoints = 0;
+          
           if (snapshot.exists) {
-            int currentPoints = snapshot.data()?['discount_points'] ?? 0;
-            if (currentPoints < targetPoints) {
-              // إضافة نقطتين فقط إذا لم يصل للحد الأقصى
-              transaction.update(userRef, {'discount_points': currentPoints + 2});
+            // استخدام حقل points ليتطابق مع واجهة dashboard
+            currentPoints = snapshot.data()?['points'] ?? 0;
+          }
+
+          if (currentPoints < targetPoints) {
+            int newPoints = currentPoints + 2;
+            // ضمان صارم: لا يمكن أن تتجاوز النقاط 50 بأي حال من الأحوال
+            if (newPoints > targetPoints) {
+              newPoints = targetPoints;
             }
-          } else {
-             // إنشاء الحقل إذا لم يكن موجوداً
-            transaction.set(userRef, {'discount_points': 2}, SetOptions(merge: true));
+            transaction.set(userRef, {'points': newPoints}, SetOptions(merge: true));
           }
         });
-
       } catch (e) {
         debugPrint("Error adding points: $e");
       }
@@ -113,6 +129,7 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
 
   @override
   void dispose() {
+    _pulseController.dispose();
     _rewardedAd?.dispose();
     super.dispose();
   }
@@ -121,7 +138,6 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    // استخدام StreamBuilder للاستماع المباشر للتغييرات في النقاط
     return StreamBuilder<DocumentSnapshot>(
       stream: user != null 
           ? FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots()
@@ -130,191 +146,243 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
         int points = 0;
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>;
-          points = data['discount_points'] ?? 0;
+          points = data['points'] ?? 0; // قراءة من حقل points
         }
 
-        // التحقق هل وصل للهدف (50 نقطة)
         bool isRewardReady = points >= targetPoints;
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF4F7F7),
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            centerTitle: true,
-            title: const Text(
-              'مكافآت رصيد',
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Icon(Icons.info_outline, color: emeraldColor),
-              )
-            ],
-          ),
-          body: SingleChildScrollView(
-            child: Column(
-              children: [
-                // الرأس العلوي
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 25),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(30),
-                      bottomRight: Radius.circular(30),
+          body: Stack(
+            children: [
+              // 1. الخلفية المبهجة (Gradient)
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      emeraldColor,
+                      const Color(0xFF1A212D), // لون داكن عميق
+                    ],
+                  ),
+                ),
+              ),
+              
+              // 2. دوائر الزينة في الخلفية
+              Positioned(
+                top: -50, right: -50,
+                child: CircleAvatar(radius: 100, backgroundColor: Colors.white.withOpacity(0.05)),
+              ),
+              Positioned(
+                bottom: -80, left: -50,
+                child: CircleAvatar(radius: 120, backgroundColor: neonGreen.withOpacity(0.05)),
+              ),
+
+              // 3. المحتوى الرئيسي
+              SafeArea(
+                child: Column(
+                  children: [
+                    _buildAppBar(),
+                    
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 20.0),
+                          child: Column(
+                            children: [
+                              // العنوان الترحيبي
+                              const Icon(Icons.stars_rounded, size: 60, color: Colors.amber),
+                              const SizedBox(height: 15),
+                              const Text(
+                                'صندوق المكافآت', 
+                                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'IBMPlexSansArabic'),
+                              ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                'شاهد الإعلانات، واجمع 50 نقطة\nلتحصل على تحويل مجاني بدون عمولة!',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5, fontFamily: 'IBMPlexSansArabic'),
+                              ),
+                              
+                              const SizedBox(height: 40),
+
+                              // بطاقة النقاط الزجاجية
+                              _buildGlassCounter(points, isRewardReady),
+
+                              const SizedBox(height: 40),
+
+                              // زر الإعلان التفاعلي
+                              _buildGamifiedButton(isRewardReady),
+
+                              const SizedBox(height: 30),
+
+                              // رسالة النجاح
+                              if (isRewardReady) _buildSuccessBadge(),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(Icons.stars_rounded, size: 60, color: Colors.amber),
-                      const SizedBox(height: 15),
-                      const Text('نظام تجميع النقاط', 
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'جمع 50 نقطة للحصول على إعفاء كامل من عمولة التحويل القادمة.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-                
-                Padding(
-                  padding: const EdgeInsets.all(25.0),
-                  child: Column(
-                    children: [
-                      // عداد النقاط
-                      _buildPointsCounter(points, isRewardReady),
-
-                      const SizedBox(height: 30),
-
-                      // زر مشاهدة الإعلان
-                      _buildWatchAdButton(isRewardReady),
-
-                      const SizedBox(height: 20),
-
-                      // رسالة التنبيه عند الاكتمال
-                      if (isRewardReady)
-                        _buildRewardAlert(),
-                      
-                      const SizedBox(height: 40),
-                      
-                      const Text(
-                        "مشاهدة الإعلانات تدعم استمرارية الخدمة مجاناً",
-                        style: TextStyle(color: Colors.grey, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildPointsCounter(int points, bool isRewardReady) {
-    double progress = (points / targetPoints).clamp(0.0, 1.0);
-    
-    return Container(
-      padding: const EdgeInsets.all(30),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))],
-      ),
-      child: Column(
+  Widget _buildAppBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 140,
-                height: 140,
-                child: CircularProgressIndicator(
-                  value: progress,
-                  strokeWidth: 12,
-                  backgroundColor: Colors.grey.shade100,
-                  valueColor: AlwaysStoppedAnimation<Color>(emeraldColor),
-                ),
-              ),
-              Column(
-                children: [
-                  Text('$points', style: TextStyle(fontSize: 38, fontWeight: FontWeight.bold, color: emeraldColor)),
-                  const Text('نقطة', style: TextStyle(fontSize: 14, color: Colors.grey)),
-                ],
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
           ),
-          const SizedBox(height: 25),
-          Text(
-            isRewardReady
-                ? 'تهانينا! وصلت للهدف' 
-                : 'باقي لك ${targetPoints - points} نقطة للإعفاء', 
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)
+          const Text('المكافآت', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic')),
+          IconButton(
+            icon: const Icon(Icons.info_outline_rounded, color: Colors.white70),
+            onPressed: () {
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('كل إعلان يمنحك نقطتين', style: TextStyle(fontFamily: 'IBMPlexSansArabic'))));
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildWatchAdButton(bool isRewardReady) {
-    // تعطيل الزر إذا اكتملت النقاط أو الإعلان لم يتحمل بعد
-    bool disableButton = isRewardReady;
-
-    return SizedBox(
-      width: double.infinity,
-      child: Opacity(
-        // نجعل الزر شفافاً نوعاً ما إذا كان معطلاً
-        opacity: disableButton ? 0.3 : 1.0, 
-        child: ElevatedButton.icon(
-          onPressed: disableButton 
-              ? null // لا يمكن الضغط
-              : () => _showAdAndReward(),
-          icon: Icon(
-            Icons.play_circle_fill, 
-            color: Colors.white, 
-            size: 28
+  Widget _buildGlassCounter(int points, bool isRewardReady) {
+    double progress = (points / targetPoints).clamp(0.0, 1.0);
+    
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(30),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
           ),
-          label: Text(
-            isRewardReady 
-                ? 'لديك خصم متاح الآن' 
-                : (_isAdLoaded ? 'شاهد إعلان الآن (+2 نقطة)' : 'جاري تحميل الإعلان...'),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: emeraldColor,
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          child: Column(
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 160,
+                    height: 160,
+                    child: CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 15,
+                      backgroundColor: Colors.white.withOpacity(0.1),
+                      valueColor: AlwaysStoppedAnimation<Color>(isRewardReady ? neonGreen : Colors.amber),
+                      strokeCap: StrokeCap.round,
+                    ),
+                  ),
+                  Column(
+                    children: [
+                      Text(
+                        '$points', 
+                        style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: isRewardReady ? neonGreen : Colors.white, fontFamily: 'IBMPlexSansArabic'),
+                      ),
+                      Text(
+                        'من $targetPoints', 
+                        style: const TextStyle(fontSize: 14, color: Colors.white70, fontFamily: 'IBMPlexSansArabic'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 25),
+              Text(
+                isRewardReady ? 'الخصم جاهز للاستخدام!' : 'باقي لك ${targetPoints - points} نقطة',
+                style: TextStyle(
+                  color: isRewardReady ? neonGreen : Colors.white, 
+                  fontSize: 18, 
+                  fontWeight: FontWeight.bold, 
+                  fontFamily: 'IBMPlexSansArabic'
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildRewardAlert() {
+  Widget _buildGamifiedButton(bool isRewardReady) {
+    if (isRewardReady) {
+      return Container(
+        width: double.infinity,
+        height: 60,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Center(
+          child: Text('الخصم مُفعل', style: TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic')),
+        ),
+      );
+    }
+
+    return ScaleTransition(
+      scale: _isAdLoaded ? _pulseAnimation : const AlwaysStoppedAnimation(1.0),
+      child: GestureDetector(
+        onTap: () => _showAdAndReward(),
+        child: Container(
+          width: double.infinity,
+          height: 65,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: _isAdLoaded 
+                ? [neonGreen, const Color(0xFFAACC00)] 
+                : [Colors.grey.shade600, Colors.grey.shade700],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: _isAdLoaded ? [
+              BoxShadow(color: neonGreen.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 5))
+            ] : [],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(_isAdLoaded ? Icons.play_arrow_rounded : Icons.hourglass_empty_rounded, color: darkGrey, size: 30),
+              const SizedBox(width: 10),
+              Text(
+                _isAdLoaded ? 'شاهد إعلان (+2 نقطة)' : 'جاري تحميل الإعلان...',
+                style: TextStyle(color: darkGrey, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'IBMPlexSansArabic'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuccessBadge() {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.green.shade50, 
+        color: neonGreen.withOpacity(0.2),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.green.withOpacity(0.3))
+        border: Border.all(color: neonGreen.withOpacity(0.5)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 30),
-          const SizedBox(width: 12),
+          Icon(Icons.check_circle_rounded, color: neonGreen, size: 30),
+          const SizedBox(width: 15),
           const Expanded(
             child: Text(
-              'رائع! حصلت على إعفاء كامل. سيتم تصفير العمولة في شاشة التحويل تلقائياً.',
-              style: TextStyle(fontSize: 13, color: Colors.green, fontWeight: FontWeight.bold),
+              'تهانينا! توجه الآن للرئيسية وسيتم خصم العمولة تلقائياً عند التحويل.',
+              style: TextStyle(color: Colors.white, fontSize: 13, height: 1.5, fontFamily: 'IBMPlexSansArabic'),
             ),
           ),
         ],

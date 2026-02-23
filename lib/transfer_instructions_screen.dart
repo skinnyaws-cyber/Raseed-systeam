@@ -21,6 +21,7 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
   bool _showSwipeHint = false; // التحكم بظهور إيماءة السحب
   
   late PageController _pageController;
+  final ScrollController _scrollController = ScrollController(); // التعديل: متحكم السكرول للسلايدر
 
   // بيانات الشركات (الصور والنصوص المحدثة)
   final List<Map<String, dynamic>> _providers = [
@@ -72,7 +73,7 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
     _checkAndShowSwipeHint(); // التحقق من عرض الإيماءة
   }
 
-  // التعديل 1: عرض الإيماءة لمرة واحدة فقط لكل مستخدم
+  // عرض الإيماءة لمرة واحدة فقط لكل مستخدم
   Future<void> _checkAndShowSwipeHint() async {
     final prefs = await SharedPreferences.getInstance();
     bool hasShown = prefs.getBool('hasShownTransferSwipeHint') ?? false;
@@ -83,7 +84,6 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
       });
       // حفظ الحالة لكي لا تظهر مرة أخرى
       await prefs.setBool('hasShownTransferSwipeHint', true);
-      
       // إخفاء الإيماءة تلقائياً بعد 3 ثوانٍ
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted) {
@@ -98,6 +98,7 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
   @override
   void dispose() {
     _pageController.dispose();
+    _scrollController.dispose(); // التعديل: تنظيف متحكم السكرول
     super.dispose();
   }
 
@@ -170,6 +171,19 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
                   setState(() {
                     _showInstructions = !_showInstructions;
                   });
+                  
+                  // التعديل: تفعيل السلايدر الوهمي لثانيتين عند فتح التعليمات
+                  if (_showInstructions) {
+                    Future.delayed(const Duration(milliseconds: 850), () {
+                      if (mounted && _scrollController.hasClients) {
+                        _scrollController.animateTo(1.0, duration: const Duration(milliseconds: 50), curve: Curves.linear).then((_) {
+                          if (mounted) {
+                            _scrollController.animateTo(0.0, duration: const Duration(milliseconds: 50), curve: Curves.linear);
+                          }
+                        });
+                      }
+                    });
+                  }
                 },
               ),
             ),
@@ -223,7 +237,8 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
         AnimatedContainer(
           duration: const Duration(milliseconds: 800),
           curve: Curves.easeInOut,
-          height: MediaQuery.of(context).size.height * 0.65, 
+          // التعديل: امتداد اللون الأخضر بنسبة 90% من الشاشة عند القراءة لتقليل التداخل
+          height: MediaQuery.of(context).size.height * (_showInstructions ? 0.90 : 0.65), 
           width: double.infinity,
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -238,14 +253,13 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
           ),
         ),
         
-        // التعديل 2: الطبقة البيضاء السفلية تتغير مساحتها ديناميكياً
         Align(
           alignment: Alignment.bottomCenter,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 800),
             curve: Curves.easeInOut,
-            // إذا كانت الإرشادات معروضة، يأخذ الربع (0.25)، وإلا يأخذ النصف (0.5)
-            height: MediaQuery.of(context).size.height * (_showInstructions ? 0.18 : 0.5),
+            // التعديل: تقليص مساحة اللون الأبيض إلى 15% فقط (أقل من ربع الشاشة) عند القراءة
+            height: MediaQuery.of(context).size.height * (_showInstructions ? 0.15 : 0.5),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
@@ -336,40 +350,50 @@ class _TransferInstructionsScreenState extends State<TransferInstructionsScreen>
       bottom: 0,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              ...(_providers[_selectedIndex]['instructions'] as List<String>).map((text) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 25),
-                  child: Text(
-                    text,
-                    style: const TextStyle(
-                      color: Colors.white, 
-                      fontSize: 18,
-                      height: 1.6, 
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'IBMPlexSansArabic',
+        // التعديل: إضافة السلايدر الجانبي الرفيع الذي يختفي بعد ثانيتين ولا يغطي النص
+        child: RawScrollbar(
+          controller: _scrollController,
+          thumbColor: Colors.white.withOpacity(0.8),
+          radius: const Radius.circular(10),
+          thickness: 5,
+          timeToFade: const Duration(seconds: 2),
+          crossAxisMargin: 2,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                ...(_providers[_selectedIndex]['instructions'] as List<String>).map((text) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 25),
+                    child: Text(
+                      text,
+                      style: const TextStyle(
+                        color: Colors.white, 
+                        fontSize: 18,
+                        height: 1.6, 
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'IBMPlexSansArabic',
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
 
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              if (_selectedIndex == 0) ...[
-                 _buildFramedImage('assets/fonts/images/zain_exp.png'), 
-              ] else ...[
-                 _buildFramedImage('assets/fonts/images/asiacell_exp.png'),
-                 const SizedBox(height: 20),
-                 _buildFramedImage('assets/fonts/images/asiacell_exp2.png'),
+                if (_selectedIndex == 0) ...[
+                   _buildFramedImage('assets/fonts/images/zain_exp.png'), 
+                ] else ...[
+                   _buildFramedImage('assets/fonts/images/asiacell_exp.png'),
+                   const SizedBox(height: 20),
+                   _buildFramedImage('assets/fonts/images/asiacell_exp2.png'),
+                ],
+
+                const SizedBox(height: 150), 
               ],
-
-              const SizedBox(height: 150), 
-            ],
+            ),
           ),
         ),
       ),
@@ -481,7 +505,7 @@ class __AnimatedSwipeHandState extends State<_AnimatedSwipeHand> with SingleTick
       vsync: this, 
       duration: const Duration(milliseconds: 1200)
     )..repeat(reverse: false);
-    
+
     // الحركة من اليمين (موجب) إلى اليسار (سالب)
     _animation = Tween<double>(begin: 60.0, end: -60.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut)
