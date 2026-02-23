@@ -6,6 +6,13 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+// 1. قراءة ملف التوقيع السري (key.properties)
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = java.util.Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.raseed.raseedApp"
     compileSdk = flutter.compileSdkVersion
@@ -31,11 +38,30 @@ android {
         versionName = flutter.versionName
     }
 
+    // 2. تجهيز بصمة التوقيع الرسمي (Keystore)
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // 3. ربط التوقيع الرسمي بالنسخة بدلاً من التوقيع التجريبي (debug)
+            signingConfig = signingConfigs.getByName("release")
+            
+            // 4. السحر هنا: تفعيل التشويش وتقليص حجم التطبيق
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
