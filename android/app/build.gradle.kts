@@ -1,3 +1,7 @@
+// 1. إضافة الاستدعاءات (Imports) لحل مشكلة Unresolved reference
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -6,11 +10,11 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-// 1. قراءة ملف التوقيع السري (key.properties)
+// 2. قراءة ملف التوقيع بطريقة صحيحة في Kotlin
 val keystorePropertiesFile = rootProject.file("key.properties")
-val keystoreProperties = java.util.Properties()
+val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -24,7 +28,8 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        // 3. إصلاح التحذير الخاص بـ jvmTarget
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -38,7 +43,6 @@ android {
         versionName = flutter.versionName
     }
 
-    // 2. تجهيز بصمة التوقيع الرسمي (Keystore)
     signingConfigs {
         create("release") {
             if (keystorePropertiesFile.exists()) {
@@ -52,10 +56,8 @@ android {
 
     buildTypes {
         release {
-            // 3. ربط التوقيع الرسمي بالنسخة بدلاً من التوقيع التجريبي (debug)
             signingConfig = signingConfigs.getByName("release")
             
-            // 4. السحر هنا: تفعيل التشويش وتقليص حجم التطبيق
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
