@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:upgrader/upgrader.dart'; // إضافة مكتبة التحديث الإجباري
+import 'package:firebase_messaging/firebase_messaging.dart'; // إضافة مكتبة الإشعارات
 import 'firebase_options.dart';
 
 // استيراد الشاشات
@@ -10,6 +11,16 @@ import 'onboarding_screen.dart';
 import 'signup_screen.dart';
 import 'dashboard_screen.dart';
 
+// هذه الدالة تعمل في الخلفية حتى لو كان التطبيق مغلقاً تماماً
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // تأكد من تهيئة فايربيس أولاً
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  debugPrint("تم استلام إشعار في الخلفية: ${message.messageId}");
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -17,6 +28,10 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    
+    // تفعيل مستمع الإشعارات في الخلفية
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
   } catch (e) {
     debugPrint("Firebase init error (ignored if duplicate): $e");
   }
