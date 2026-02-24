@@ -26,6 +26,7 @@ dependencies:
   google_mobile_ads: ^7.0.0
   shared_preferences: ^2.2.2
   upgrader: ^12.5.0
+  firebase_messaging: ^15.2.10
 
 dev_dependencies:
   flutter_test:
