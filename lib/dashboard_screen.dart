@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart' as intl;
@@ -65,6 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _fetchUserData();
     _calculateTodayTotal();
     _startMidnightTimer();
+    _setupPushNotifications();
   }
 
   void _fetchUserData() async {
@@ -118,6 +120,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() {
           _timeLeftToMidnight = "$hours:$minutes:$seconds";
         });
+      }
+    });
+  }
+
+  Future<void> _setupPushNotifications() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    // 1. طلب إذن الإشعارات (مهم للآيفون)
+    await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // 2. استخراج الـ Token الخاص بهذا الهاتف
+    String? token = await messaging.getToken();
+    
+    // 3. حفظ الـ Token في حساب المستخدم
+    if (token != null && currentUser != null) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).set({
+          'fcm_token': token,
+        }, SetOptions(merge: true)); 
+        debugPrint("FCM Token Saved: $token");
+      } catch (e) {
+        debugPrint("Error saving FCM token: $e");
+      }
+    }
+
+    // 4. تحديث الـ Token تلقائياً في حال قام النظام بتغييره
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+      if (currentUser != null) {
+        FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).set({
+          'fcm_token': newToken,
+        }, SetOptions(merge: true));
       }
     });
   }
