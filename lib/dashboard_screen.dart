@@ -607,11 +607,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     Container(
                                       decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
                                       child: IconButton(
-                                        icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), 
-                                        onPressed: () {
-                                          Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
-                                        },
-                                      ),
+  icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), 
+  onPressed: () async {
+    // 1. تحديث وقت المشاهدة في قاعدة البيانات لإخفاء النقطة الحمراء
+    if (currentUser != null) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).set({
+          'last_notification_check': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint("Error updating notification check time: $e");
+      }
+    }
+    
+    // 2. الانتقال إلى واجهة الإشعارات
+    if (context.mounted) {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
+    }
+  },
+),
                                     ),
                                     if (showRedDot)
                                       Positioned(
